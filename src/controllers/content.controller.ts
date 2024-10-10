@@ -888,16 +888,29 @@ export class contentController {
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
       const Batch: any = queryData.limit || 5;
-      const contentCollection = await this.contentService.search(
-        queryData.tokenArr,
-        queryData.language,
-        queryData.contentType,
-        parseInt(Batch),
-        queryData.tags,
-        queryData.cLevel,
-        queryData.complexityLevel,
-        queryData.graphemesMappedObj,
-      );
+
+      let contentCollection;
+
+      if(queryData.mechanics_id === undefined){
+        contentCollection = await this.contentService.search(
+          queryData.tokenArr,
+          queryData.language,
+          queryData.contentType,
+          parseInt(Batch),
+          queryData.tags,
+          queryData.cLevel,
+          queryData.complexityLevel,
+          queryData.graphemesMappedObj,
+        );
+      }else{
+        contentCollection = await this.contentService.getMechanicsContentData(
+          queryData.contentType,
+          queryData.mechanics_id,
+          parseInt(Batch),
+          queryData.language
+        );
+      }
+
       return response.status(HttpStatus.CREATED).send({
         status: 'success',
         data: contentCollection,
@@ -1230,5 +1243,256 @@ export class contentController {
     return response.status(HttpStatus.OK).send({
       deleted,
     });
+  }
+
+  @ApiExcludeEndpoint(true)
+  @ApiBody({
+    description: 'Request body parameters for get content',
+    required: true,
+    schema: {
+      type: 'object',
+      properties: {
+        tokenArr: { 
+          type: 'array', 
+          description: 'Array of tokens', 
+          items: {
+            type: 'string',
+            example: 'c'
+          }
+        },
+        language: { 
+          type: 'string', 
+          description: 'Language code', 
+          example: 'en' 
+        },
+        contentType: { 
+          type: 'string', 
+          description: 'Type of content', 
+          example: 'Word' 
+        },
+        limit: { 
+          type: 'number', 
+          description: 'Limit on the number of items', 
+          example: 5 
+        },
+        cLevel: { 
+          type: 'string', 
+          description: 'Content level', 
+          example: 'L2' 
+        },
+        complexityLevel: { 
+          type: 'array', 
+          description: 'Array of complexity levels', 
+          items: {
+            type: 'string',
+            example: 'C1'
+          }
+        },
+        graphemesMappedObj: { 
+          type: 'object', 
+          description: 'Object mapping graphemes to their representations',
+          additionalProperties: {
+            type: 'array',
+            items: {
+              type: 'string',
+              example: 'ch'
+            }
+          },
+          example: {
+            "c": ["ch"],
+            "o": ["o"],
+            "a": ["a"],
+            "v": ["v", "ve"],
+            "w": ["w", "wh"],
+            "æ": ["a", "ai", "au"],
+            "n": ["n"],
+            "i": ["i"],
+            "θ": ["th"]
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successful response',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'success' },
+        data: {
+          type: 'object',
+          properties: {
+            wordsArr: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  _id: { type: 'string', example: '660f9545367a62b3902dd58b' },
+                  contentId: { type: 'string', example: 'f8dd7c97-53f7-4676-b597-4a52aaface5c' },
+                  collectionId: { type: 'string', example: '6a519951-8635-4d89-821a-d3eb60f6e1ec' },
+                  name: { type: 'string', example: 'L2_new_3' },
+                  contentType: { type: 'string', example: 'Word' },
+                  contentSourceData: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        language: { type: 'string', example: 'en' },
+                        audioUrl: { type: 'string', example: '' },
+                        text: { type: 'string', example: 'five' },
+                        phonemes: {
+                          type: 'array',
+                          items: { type: 'string', example: 'f' }
+                        },
+                        wordCount: { type: 'number', example: 1 },
+                        wordFrequency: {
+                          type: 'object',
+                          additionalProperties: { type: 'number', example: 1 }
+                        },
+                        syllableCount: { type: 'number', example: 4 },
+                        syllableCountMap: {
+                          type: 'object',
+                          additionalProperties: { type: 'number', example: 4 }
+                        },
+                        syllableCountArray: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              k: { type: 'string', example: 'five' },
+                              v: { type: 'number', example: 4 }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  status: { type: 'string', example: 'live' },
+                  publisher: { type: 'string', example: 'ekstep' },
+                  language: { type: 'string', example: 'en' },
+                  contentIndex: { type: 'number', example: 141 },
+                  tags: {
+                    type: 'array',
+                    items: { type: 'string' }
+                  },
+                  createdAt: { type: 'string', example: '2024-04-05T05:45:55.335Z' },
+                  updatedAt: { type: 'string', example: '2024-04-05T05:45:55.335Z' },
+                  __v: { type: 'number', example: 0 },
+                  matchedChar: {
+                    type: 'array',
+                    items: { type: 'string', example: 'v' }
+                  }
+                }
+              }
+            },
+            contentForToken: {
+              type: 'object',
+              additionalProperties: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    _id: { type: 'string', example: '660f9545367a62b3902dd58b' },
+                    contentId: { type: 'string', example: 'f8dd7c97-53f7-4676-b597-4a52aaface5c' },
+                    collectionId: { type: 'string', example: '6a519951-8635-4d89-821a-d3eb60f6e1ec' },
+                    name: { type: 'string', example: 'L2_new_3' },
+                    contentType: { type: 'string', example: 'Word' },
+                    contentSourceData: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          language: { type: 'string', example: 'en' },
+                          audioUrl: { type: 'string', example: '' },
+                          text: { type: 'string', example: 'five' },
+                          phonemes: {
+                            type: 'array',
+                            items: { type: 'string', example: 'f' }
+                          },
+                          wordCount: { type: 'number', example: 1 },
+                          wordFrequency: {
+                            type: 'object',
+                            additionalProperties: { type: 'number', example: 1 }
+                          },
+                          syllableCount: { type: 'number', example: 4 },
+                          syllableCountMap: {
+                            type: 'object',
+                            additionalProperties: { type: 'number', example: 4 }
+                          },
+                          syllableCountArray: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                k: { type: 'string', example: 'five' },
+                                v: { type: 'number', example: 4 }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    status: { type: 'string', example: 'live' },
+                    publisher: { type: 'string', example: 'ekstep' },
+                    language: { type: 'string', example: 'en' },
+                    contentIndex: { type: 'number', example: 141 },
+                    tags: {
+                      type: 'array',
+                      items: { type: 'string' }
+                    },
+                    createdAt: { type: 'string', example: '2024-04-05T05:45:55.335Z' },
+                    updatedAt: { type: 'string', example: '2024-04-05T05:45:55.335Z' },
+                    __v: { type: 'number', example: 0 },
+                    matchedChar: {
+                      type: 'array',
+                      items: { type: 'string', example: 'v' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error while fetching data from the content table',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'error' },
+        msg: { type: 'string', example: 'Server error - error message' },
+      },
+    },
+  })
+  @ApiOperation({
+    summary: 'Get all data from the content table'
+  })
+  @Get('/getMeachnicsContent')
+  async getMechanicsContent(
+    @Res() response: FastifyReply, 
+    @Query('contentType') contentType: string,@Query('mechanics_id') mechanics_id: string, @Query() { contentlimit = 5 }, @Query('language') language: string
+  ) {
+    try {
+      const Batch: any = contentlimit || 5;
+      const contentCollection = await this.contentService.getMechanicsContentData(
+        contentType,
+        mechanics_id,
+        Batch,
+        language
+      );
+      return response.status(HttpStatus.CREATED).send({
+        status: 200,
+        contentCollection,
+      });
+    } catch (error) {
+      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        status: 500,
+        message: 'Server error - ' + error,
+      });
+    }
   }
 }

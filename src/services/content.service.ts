@@ -1621,4 +1621,37 @@ export class contentService {
       return [];
     }
   }
+
+  async getMechanicsContentData(
+    contentType,
+    mechanics_id,
+    limit = 5,
+    language
+  ) {
+
+    const wordsArr = await this.content.aggregate([
+      {
+        $match: {
+          contentType: contentType,
+          language: language,
+          mechanics_data: {
+            $elemMatch: { mechanics_id: mechanics_id, language: language}
+          }
+        }
+      },
+      { $sample: { size: limit } },
+    ]);
+
+    wordsArr.map((content) => {
+      const { mechanics_data } = content;
+      const mechanicData = mechanics_data.find(
+        (mechanic) => {return mechanic.mechanics_id === mechanics_id}
+      );
+      content.mechanics_data = [];
+      content.mechanics_data.push(mechanicData);
+      return content;
+    });
+
+    return { wordsArr: wordsArr };
+  }
 }

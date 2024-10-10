@@ -33,9 +33,14 @@ export class content {
   @Prop({ required: false, type: Array })
   @IsOptional()
   @IsArray()
-  mechnics_data: [
+  mechanics_data: [
     {
-      mechnics_id: string;
+      mechanics_id: string;
+      language:string;
+      jumbled_text: string;
+      text: string;
+      audio_url: string;
+      image_url: string;
       options: [
         {
           text: string;
@@ -52,7 +57,7 @@ export class content {
       };
       time_limit: number;
       correctness: {
-        "50%": [String],
+        "50%": [string],
       }
     }
   ];

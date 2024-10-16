@@ -1626,32 +1626,110 @@ export class contentService {
     contentType,
     mechanics_id,
     limit = 5,
-    language
+    language,
+    levelCompetencyArr
   ) {
-
-    const wordsArr = await this.content.aggregate([
-      {
-        $match: {
-          contentType: contentType,
-          language: language,
-          mechanics_data: {
-            $elemMatch: { mechanics_id: mechanics_id, language: language}
-          }
+    let queries = [];
+    const numLevels = levelCompetencyArr.length;
+    
+    // Calculate split limit (e.g., for limit 5, splitLimit would be 3 for L1.1 and 2 for L1.2)
+    const splitLimit = Math.ceil(limit / numLevels);
+  
+    if (numLevels > 0 && levelCompetencyArr !== undefined) {
+      levelCompetencyArr.forEach((levelCompetency, levelCompetencyIndex) => {
+        if (levelCompetencyIndex === 0) {
+          queries.push(
+            this.content.aggregate([
+              {
+                $match: {
+                  contentType: contentType,
+                  language: language,
+                  mechanics_data: {
+                    $elemMatch: { mechanics_id: mechanics_id, language: language }
+                  },
+                  "level_complexity.level_competency": levelCompetency
+                }
+              },
+              { $sample: { size: splitLimit } }  // Fetch for the first level
+            ])
+          );
+        } else {
+          queries.push(
+            this.content.aggregate([
+              {
+                $match: {
+                  contentType: contentType,
+                  language: language,
+                  mechanics_data: {
+                    $elemMatch: { mechanics_id: mechanics_id, language: language }
+                  },
+                  "level_complexity.level_competency": levelCompetency
+                }
+              },
+              { $sample: { size: splitLimit - 1 } }  // Fetch fewer items for other levels
+            ])
+          );
         }
-      },
-      { $sample: { size: limit } },
-    ]);
-
-    wordsArr.map((content) => {
-      const { mechanics_data } = content;
-      const mechanicData = mechanics_data.find(
-        (mechanic) => {return mechanic.mechanics_id === mechanics_id}
-      );
-      content.mechanics_data = [];
-      content.mechanics_data.push(mechanicData);
-      return content;
+      });
+    }
+  
+    let results = [];
+  
+    // Execute all queries and combine the results
+    const queryResults = await Promise.all(queries);
+  
+    // Merge the results from different level competencies
+    queryResults.forEach((queryResult) => {
+      results = [...results, ...queryResult];
     });
-
-    return { wordsArr: wordsArr };
+  
+    // Ensure total results don't exceed the limit
+    if (results.length > limit) {
+      results = results.slice(0, limit);
+    }
+  
+    // If results are less than the limit, fetch additional content from any level
+    if (results.length < limit) {
+      const remainingLimit = limit - results.length;
+      const additionalContent = await this.content.aggregate([
+        {
+          $match: {
+            contentType: contentType,
+            language: language,
+            mechanics_data: {
+              $elemMatch: { mechanics_id: mechanics_id, language: language }
+            },
+            "level_complexity.level_competency": { $exists: true }
+          }
+        },
+        { $sample: { size: remainingLimit } }
+      ]);
+  
+      results = [...results, ...additionalContent];
+    }
+  
+    // If results are still less than the limit, fetch content without level_competency
+    if (results.length < limit) {
+      const remainingLimit = limit - results.length;
+      const fallbackContent = await this.content.aggregate([
+        {
+          $match: {
+            contentType: contentType,
+            language: language,
+            mechanics_data: {
+              $elemMatch: { mechanics_id: mechanics_id, language: language }
+            },
+            "level_complexity.level_competency": { $exists: false }
+          }
+        },
+        { $sample: { size: remainingLimit } }
+      ]);
+  
+      results = [...results, ...fallbackContent];
+    }
+  
+    // Return the final result ensuring the limit is respected
+    return { wordsArr: results.slice(0, limit) };
   }
+  
 }

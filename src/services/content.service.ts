@@ -1654,6 +1654,7 @@ export class contentService {
             ])
           );
         } else {
+          let handleLimit = limit % 2
           queries.push(
             this.content.aggregate([
               {
@@ -1666,7 +1667,7 @@ export class contentService {
                   "level_complexity.level_competency": levelCompetency
                 }
               },
-              { $sample: { size: splitLimit - 1 } }  // Fetch fewer items for other levels
+              { $sample: { size: splitLimit - handleLimit } }  // Fetch fewer items for other levels
             ])
           );
         }

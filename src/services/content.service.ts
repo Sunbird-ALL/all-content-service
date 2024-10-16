@@ -1728,8 +1728,20 @@ export class contentService {
       results = [...results, ...fallbackContent];
     }
   
-    // Return the final result ensuring the limit is respected
-    return { wordsArr: results.slice(0, limit) };
+    let wordsArr = results.slice(0, limit);
+
+
+      wordsArr.map((content) => {
+        const { mechanics_data } = content;
+        const mechanicData = mechanics_data.find(
+          (mechanic) => {return mechanic.mechanics_id === mechanics_id}
+        );
+        content.mechanics_data = [];
+        content.mechanics_data.push(mechanicData);
+        return content;
+      });
+
+    return { wordsArr: wordsArr };
   }
   
 }

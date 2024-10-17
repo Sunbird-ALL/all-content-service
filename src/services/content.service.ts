@@ -773,6 +773,56 @@ export class contentService {
           });
       }
 
+      // remove all criteria and get random content with content type
+      if (contentData.length <= limit) {
+        let randomContentQuery = {
+          contentSourceData: {
+            $elemMatch: {
+            },
+          },
+          contentType: contentType
+        };
+        
+        randomContentQuery.contentSourceData.$elemMatch['language'] = language;
+  
+        await this.content
+        .aggregate([
+          {
+            $addFields: {
+              contentSourceData: {
+                $map: {
+                  input: '$contentSourceData',
+                  as: 'elem',
+                  in: {
+                    $mergeObjects: [
+                      '$$elem',
+                      {
+                        syllableCountArray: {
+                          $objectToArray: '$$elem.syllableCountMap',
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          {
+            $match: randomContentQuery,
+          },
+          { $sample: { size: limit - contentData.length } },
+        ])
+        .exec()
+        .then((doc) => {
+          for (const docEle of doc) {
+            if (contentData.length == 0 || !contentDataSet.has(docEle.contentId)) {
+              contentDataSet.add(docEle.contentId);
+              contentData.push(docEle);
+            }
+          }
+        });
+        }
+
 
       for (let contentDataEle of contentData) {
         const regexMatchBegin = new RegExp(
@@ -1198,6 +1248,58 @@ export class contentService {
               }
             }
           });
+      }
+
+
+
+      // remove all criteria and get random content with content type
+      if (contentData.length <= limit) {
+      let randomContentQuery = {
+        contentSourceData: {
+          $elemMatch: {
+          },
+        },
+        contentType: contentType
+      };
+
+      randomContentQuery.contentSourceData.$elemMatch['language'] = en_config.language_code;
+
+      await this.content
+      .aggregate([
+        {
+          $addFields: {
+            contentSourceData: {
+              $map: {
+                input: '$contentSourceData',
+                as: 'elem',
+                in: {
+                  $mergeObjects: [
+                    '$$elem',
+                    {
+                      syllableCountArray: {
+                        $objectToArray: '$$elem.syllableCountMap',
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          $match: randomContentQuery,
+        },
+        { $sample: { size: limit - contentData.length } },
+      ])
+      .exec()
+      .then((doc) => {
+        for (const docEle of doc) {
+          if (contentData.length == 0 || !contentDataSet.has(docEle.contentId)) {
+            contentDataSet.add(docEle.contentId);
+            contentData.push(docEle);
+          }
+        }
+      });
       }
 
       // Remove content level

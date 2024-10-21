@@ -901,6 +901,7 @@ export class contentController {
           queryData.cLevel,
           queryData.complexityLevel,
           queryData.graphemesMappedObj,
+          queryData.level_competency
         );
       }else{
         contentCollection = await this.contentService.getMechanicsContentData(
@@ -908,7 +909,8 @@ export class contentController {
           queryData.mechanics_id,
           parseInt(Batch),
           queryData.language,
-          queryData.level_competency
+          queryData.level_competency,
+          queryData.tags
         );
       }
 

@@ -888,16 +888,32 @@ export class contentController {
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
       const Batch: any = queryData.limit || 5;
-      const contentCollection = await this.contentService.search(
-        queryData.tokenArr,
-        queryData.language,
-        queryData.contentType,
-        parseInt(Batch),
-        queryData.tags,
-        queryData.cLevel,
-        queryData.complexityLevel,
-        queryData.graphemesMappedObj,
-      );
+
+      let contentCollection;
+
+      if(queryData.mechanics_id === undefined){
+        contentCollection = await this.contentService.search(
+          queryData.tokenArr,
+          queryData.language,
+          queryData.contentType,
+          parseInt(Batch),
+          queryData.tags,
+          queryData.cLevel,
+          queryData.complexityLevel,
+          queryData.graphemesMappedObj,
+          queryData.level_competency
+        );
+      }else{
+        contentCollection = await this.contentService.getMechanicsContentData(
+          queryData.contentType,
+          queryData.mechanics_id,
+          parseInt(Batch),
+          queryData.language,
+          queryData.level_competency,
+          queryData.tags
+        );
+      }
+
       return response.status(HttpStatus.CREATED).send({
         status: 'success',
         data: contentCollection,

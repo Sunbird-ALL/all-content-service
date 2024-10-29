@@ -783,59 +783,9 @@ export class contentService {
           });
       }
 
-            // remove all criteria and get random content with content type
-      if (contentData.length <= limit) {
-      let randomContentQuery = {
-        contentSourceData: {
-          $elemMatch: {
-          },
-        },
-        contentType: contentType
-      };
-
-      randomContentQuery.contentSourceData.$elemMatch['language'] = en_config.language_code;
-
-      await this.content
-      .aggregate([
-        {
-          $addFields: {
-            contentSourceData: {
-              $map: {
-                input: '$contentSourceData',
-                as: 'elem',
-                in: {
-                  $mergeObjects: [
-                    '$$elem',
-                    {
-                      syllableCountArray: {
-                        $objectToArray: '$$elem.syllableCountMap',
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-          },
-        },
-        {
-          $match: randomContentQuery,
-        },
-        { $sample: { size: limit - contentData.length } },
-      ])
-      .exec()
-      .then((doc) => {
-        for (const docEle of doc) {
-          if (contentData.length == 0 || !contentDataSet.has(docEle.contentId)) {
-            contentDataSet.add(docEle.contentId);
-            contentData.push(docEle);
-          }
-        }
-      });
-      }
-
       // remove all criteria and get random content with content type
       if (contentData.length <= limit) {
-        console.log("hello");
+
         let randomContentQuery = {
           contentSourceData: {
             $elemMatch: {
@@ -882,7 +832,7 @@ export class contentService {
             }
           }
         });
-        }
+      }
 
 
       for (let contentDataEle of contentData) {

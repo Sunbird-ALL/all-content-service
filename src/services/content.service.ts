@@ -57,6 +57,8 @@ export class contentService {
           "contentSourceData.text": 1,
           "contentSourceData.phonemes": 1,
           "contentSourceData.syllableCount": 1,
+          "mechanics_data":1,
+          "contentIndex":1
         }
       },
       {
@@ -64,6 +66,9 @@ export class contentService {
       },
       {
         $limit: limitValue
+      },
+      {
+        $sort: { contentIndex: 1 }
       }
     ]).exec();
     return {

@@ -9,7 +9,6 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppClusterService } from './app-cluster.service';
 import compression from '@fastify/compress';
 import fastifyMultipart from 'fastify-multipart';
-import { FastifyReply, FastifyRequest } from 'fastify';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -48,16 +47,6 @@ async function bootstrap() {
 
   // Register fastify-multipart plugin
   app.register(fastifyMultipart);
-
-  // Access the Fastify instance to define the health check endpoint
-  const fastifyInstance = app.getHttpAdapter().getInstance();
-
-  fastifyInstance.get('/ping', async (request: FastifyRequest, reply: FastifyReply) => {
-    reply.status(200).send({
-      status: true,
-      message: 'content ServiceApp is working',
-    });
-  });
 
   await app.listen(3008, '0.0.0.0');
 }

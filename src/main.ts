@@ -8,7 +8,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppClusterService } from './app-cluster.service';
 import compression from '@fastify/compress';
-import fastifyMultipart from 'fastify-multipart';
+
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -44,9 +44,6 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
-
-  // Register fastify-multipart plugin
-  app.register(fastifyMultipart);
 
   await app.listen(3008, '0.0.0.0');
 }

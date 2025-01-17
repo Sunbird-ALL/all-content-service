@@ -148,7 +148,7 @@ export class contentController {
   @Post()
   async create(@Res() response: FastifyReply, @Body() content: any) {
     try {
-      const lcSupportedLanguages = ['ta', 'ka', 'hi', 'te', 'kn'];
+      const lcSupportedLanguages = ['ta', 'ka', 'hi', 'te', 'kn', "gu", "or"];
 
       const updatedcontentSourceData = await Promise.all(
         content.contentSourceData.map(async (contentSourceDataEle) => {

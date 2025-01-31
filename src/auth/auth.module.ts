@@ -7,8 +7,7 @@ import { JwtAuthGuard } from './auth.guard';
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env.JOSE_SECRET, 
-      signOptions: { expiresIn: '1h' },
+      secret: process.env.JOSE_SECRET
     }),
   ],
   providers: [JwtAuthGuard,JwtService],

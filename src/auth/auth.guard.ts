@@ -4,22 +4,19 @@ import { Request } from 'express';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService) {}
+  constructor(private jwtService: JwtService) { }
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers.authorization;
-    console.log("authHeader---", authHeader);
+
     if (!authHeader) {
       throw new UnauthorizedException('Authorization header missing');
     }
-
     const token = authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
-    console.log("token----", token);
     try {
       const decoded = this.jwtService.verify(token, { secret: process.env.JOSE_SECRET });
-      console.log("decoded---", decoded);
-      request.user = decoded; // Attach user data to request
+      request.user = decoded;
       return true;
     } catch (err) {
       throw new UnauthorizedException('Invalid or expired token');

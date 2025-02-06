@@ -9,6 +9,7 @@ import {
   Put,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { contentService } from '../services/content.service';
 import { CollectionService } from '../services/collection.service';
@@ -26,9 +27,11 @@ import {
   ApiTags,
   ApiQuery,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/auth.guard';
 
 @ApiTags('content')
 @Controller('content')
+@UseGuards(JwtAuthGuard)
 export class contentController {
   constructor(
     private readonly contentService: contentService,

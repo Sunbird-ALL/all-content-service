@@ -888,16 +888,45 @@ export class contentController {
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
       const Batch: any = queryData.limit || 5;
-      const contentCollection = await this.contentService.search(
-        queryData.tokenArr,
-        queryData.language,
-        queryData.contentType,
-        parseInt(Batch),
-        queryData.tags,
-        queryData.cLevel,
-        queryData.complexityLevel,
-        queryData.graphemesMappedObj,
-      );
+      let contentCollection;
+      let collectionId;
+      if (queryData.story_mode === "true" && queryData.type_of_learner && queryData.type_of_learner !== "") {
+        collectionId = await this.collectionService.getTypeOfLearner(
+          queryData.type_of_learner,
+          queryData.language,
+          queryData.category,
+        );
+        const contentData = await this.contentService.pagination(0,parseInt(Batch), queryData.contentType, collectionId);
+        let contentArr = contentData['data'];
+        if (contentArr.length === 0) {
+          await this.contentService.search(
+            queryData.tokenArr,
+            queryData.language,
+            queryData.contentType,
+            parseInt(Batch),
+            queryData.tags,
+            queryData.cLevel,
+            queryData.complexityLevel,
+            queryData.graphemesMappedObj,  
+          ).then((contentData) => {
+            contentArr = contentData['wordsArr'];
+          });
+        }
+        
+        contentCollection = { wordsArr: contentArr };
+      } else {
+        contentCollection = await this.contentService.search(
+          queryData.tokenArr,
+          queryData.language,
+          queryData.contentType,
+          parseInt(Batch),
+          queryData.tags,
+          queryData.cLevel,
+          queryData.complexityLevel,
+          queryData.graphemesMappedObj
+        );
+      }
+
       return response.status(HttpStatus.CREATED).send({
         status: 'success',
         data: contentCollection,

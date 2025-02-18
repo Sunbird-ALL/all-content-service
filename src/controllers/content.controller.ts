@@ -896,7 +896,7 @@ export class contentController {
           queryData.language,
           queryData.category,
         );
-        const contentData = await this.contentService.pagination(0,parseInt(Batch), queryData.contentType, collectionId);
+        const contentData = await this.contentService.getStoryContent(queryData.contentType, collectionId);
         let contentArr = contentData['data'];
         if (contentArr.length === 0) {
           await this.contentService.search(

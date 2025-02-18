@@ -77,6 +77,31 @@ export class contentService {
     };
   }
 
+  async getStoryContent(contentType: any, collectionId: any) {
+    const data = await this.content.aggregate([
+      {
+        $match: {
+          collectionId: collectionId
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          contentType: 1,
+          contentId: 1,
+          language: 1,
+          "contentSourceData.text": 1,
+          "contentSourceData.phonemes": 1,
+          "contentSourceData.syllableCount": 1,
+        }
+      }
+    ]).exec();
+    return {
+      data: data,
+      status: 200,
+    };
+  }
+
   async getRandomContent(limit = 5, type = 'Word', language = 'ta') {
     const data = await this.content.aggregate([
       {

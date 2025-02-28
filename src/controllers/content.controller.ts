@@ -445,6 +445,14 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
+      // Add the check for the limit
+      let limit = 0
+      if(limit < 5){
+        limit = 5;
+      }else if( limit > 20){
+        limit = 20
+      }
+      
       const skip = (page - 1) * limit;
       const { data } = await this.contentService.pagination(
         skip,

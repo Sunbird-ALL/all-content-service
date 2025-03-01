@@ -446,10 +446,10 @@ export class contentController {
   ) {
     try {
       // Add the check for the limit
-      if(limit < 5){
+      if (limit < 5) {
         limit = 5;
-      }else if( limit > 20){
-        limit = 20
+      } else if (limit > 20) {
+        limit = 20;
       }
       const skip = (page - 1) * limit;
       const { data } = await this.contentService.pagination(
@@ -900,7 +900,7 @@ export class contentController {
 
       let contentCollection;
 
-      if(queryData.mechanics_id === undefined){
+      if (queryData.mechanics_id === undefined) {
         contentCollection = await this.contentService.search(
           queryData.tokenArr,
           queryData.language,
@@ -912,7 +912,7 @@ export class contentController {
           queryData.graphemesMappedObj,
           queryData.level_competency
         );
-      }else{
+      } else {
         contentCollection = await this.contentService.getMechanicsContentData(
           queryData.contentType,
           queryData.mechanics_id,

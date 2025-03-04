@@ -11,6 +11,8 @@ import { CollectionController } from './controllers/collection.controller';
 import { CollectionService } from './services/collection.service';
 import { HttpModule } from '@nestjs/axios';
 import { AuthModule } from './auth/auth.module';
+import { JwtService } from '@nestjs/jwt';
+import { JwtAuthGuard } from './auth/auth.guard';
 
 @Module({
   imports: [
@@ -40,6 +42,6 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
   ],
   controllers: [AppController, contentController, CollectionController],
-  providers: [AppService, contentService, CollectionService],
+  providers: [AppService, contentService, CollectionService, JwtService, JwtAuthGuard],
 })
 export class AppModule {}

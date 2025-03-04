@@ -39,18 +39,6 @@ async function bootstrap() {
     credentials: false,
   });
 
-  // const config = new DocumentBuilder()
-  //   .setTitle('ALL Content Service')
-  //   .setDescription(
-  //     'All content service includes Storys , word, sentences texts to practice',
-  //   )
-  //   .setVersion('v1')
-  //   .addServer(process.env.SERVER_URL, 'ALL Content Service Server APIs')
-  //   .build();
-
-  // const document = SwaggerModule.createDocument(app, config);
-  // SwaggerModule.setup('api', app, document);
-
   // Swagger Documentation for v1
   const configV1 = new DocumentBuilder()
     .setTitle('ALL Content Service - v1')

@@ -155,7 +155,7 @@ export class contentController {
   @Post()
   async create(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Body() content: any) {
     try {
-      const lcSupportedLanguages = ['ta', 'ka', 'hi', 'te', 'kn'];
+      const lcSupportedLanguages = ['ta', 'ka', 'hi', 'te', 'kn', "gu", "or"];
 
       const updatedcontentSourceData = await Promise.all(
         content.contentSourceData.map(async (contentSourceDataEle) => {
@@ -955,10 +955,33 @@ export class contentController {
 
     try {
       const Batch: any = queryData.limit || 5;
-
       let contentCollection;
-
-      if (queryData.mechanics_id === undefined) {
+      let collectionId;
+      if (queryData.story_mode === "true" && queryData.type_of_learner && queryData.type_of_learner !== "") {
+        collectionId = await this.collectionService.getTypeOfLearner(
+          queryData.type_of_learner,
+          queryData.language,
+          queryData.category,
+        );
+        const contentData = await this.contentService.getStoryContent(queryData.contentType, collectionId);
+        let contentArr = contentData['data'];
+        if (contentArr.length === 0) {
+          await this.contentService.search(
+            queryData.tokenArr,
+            queryData.language,
+            queryData.contentType,
+            parseInt(Batch),
+            queryData.tags,
+            queryData.cLevel,
+            queryData.complexityLevel,
+            queryData.graphemesMappedObj,  
+          ).then((contentData) => {
+            contentArr = contentData['wordsArr'];
+          });
+        }
+        
+        contentCollection = { wordsArr: contentArr };
+      } else {
         contentCollection = await this.contentService.search(
           queryData.tokenArr,
           queryData.language,
@@ -967,17 +990,7 @@ export class contentController {
           queryData.tags,
           queryData.cLevel,
           queryData.complexityLevel,
-          queryData.graphemesMappedObj,
-          queryData.level_competency
-        );
-      } else {
-        contentCollection = await this.contentService.getMechanicsContentData(
-          queryData.contentType,
-          queryData.mechanics_id,
-          parseInt(Batch),
-          queryData.language,
-          queryData.level_competency,
-          queryData.tags
+          queryData.graphemesMappedObj
         );
       }
 

@@ -225,8 +225,8 @@ export class contentController {
               syllableCountMap: syllableCountMap,
             };
           } else if (contentSourceDataEle['language'] === 'en') {
-            const url = process.env.ALL_TEXT_EVAL_URL + 'getPhonemes';
-
+            const url = process.env.ALL_TEXT_EVAL_API + `${request.version}` + "/getPhonemes";
+            
             const textData = {
               text: contentSourceDataEle['text'],
             };
@@ -1253,7 +1253,7 @@ export class contentController {
 
             return { ...contentSourceDataEle, ...newContent.result };
           } else if (contentSourceDataEle['language'] === 'en') {
-            const url = process.env.ALL_TEXT_EVAL_URL + 'getPhonemes';
+            const url = process.env.ALL_TEXT_EVAL_API + `${request.version}` + "/getPhonemes";
 
             const textData = {
               text: contentSourceDataEle['text'],

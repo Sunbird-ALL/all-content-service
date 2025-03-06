@@ -29,7 +29,7 @@ export class CollectionService {
   }
 
   async readById(id): Promise<collection> {
-    return await this.collectionModel.findById(id).exec();
+    return await this.collectionModel.findOne({ collectionId: id }).exec();
   }
 
   async update(id, collection: collection): Promise<collection> {

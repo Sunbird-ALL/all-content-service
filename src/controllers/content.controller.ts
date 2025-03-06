@@ -8,11 +8,14 @@ import {
   Post,
   Put,
   Query,
+  Req,
   Res,
+  UseInterceptors,
+  Version,
 } from '@nestjs/common';
 import { contentService } from '../services/content.service';
 import { CollectionService } from '../services/collection.service';
-import { FastifyReply } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map } from 'rxjs';
 import * as splitGraphemes from 'split-graphemes';
@@ -21,14 +24,16 @@ import {
   ApiExcludeEndpoint,
   ApiForbiddenResponse,
   ApiOperation,
-  ApiParam,
   ApiResponse,
   ApiTags,
   ApiQuery,
 } from '@nestjs/swagger';
+import { VersionedAuthInterceptor } from 'src/interceptors/versioned-auth.interceptor';
+import { UserIdInterceptor } from 'src/interceptors/user_id.interceptor';
 
 @ApiTags('content')
 @Controller('content')
+@UseInterceptors(UserIdInterceptor)
 export class contentController {
   constructor(
     private readonly contentService: contentService,
@@ -145,8 +150,10 @@ export class contentController {
     summary:
       'Store the data into to the content table',
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Post()
-  async create(@Res() response: FastifyReply, @Body() content: any) {
+  async create(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Body() content: any) {
     try {
       const lcSupportedLanguages = ['ta', 'ka', 'hi', 'te', 'kn', "gu", "or"];
 
@@ -309,11 +316,13 @@ export class contentController {
       const newContent = await this.contentService.create(content);
 
       return response.status(HttpStatus.CREATED).send({
+        apiVersion: request?.version,
         status: 'success',
         data: newContent,
       });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -321,8 +330,10 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Post('search')
-  async searchContent(@Res() response: FastifyReply, @Body() tokenData: any) {
+  async searchContent(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Body() tokenData: any) {
     try {
       const contentCollection = await this.contentService.search(
         tokenData.tokenArr,
@@ -335,11 +346,13 @@ export class contentController {
         tokenData.graphemesMappedObj,
       );
       return response.status(HttpStatus.CREATED).send({
+        apiVersion: request?.version,
         status: 'success',
         data: contentCollection,
       });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -347,8 +360,11 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Post('charNotPresent')
   async charNotPresentContent(
+    @Req() request: FastifyRequest,
     @Res() response: FastifyReply,
     @Body() tokenData: any,
   ) {
@@ -357,11 +373,13 @@ export class contentController {
         tokenData.tokenArr,
       );
       return response.status(HttpStatus.CREATED).send({
+        apiVersion: request?.version,
         status: 'success',
         data: contentCollection,
       });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -433,8 +451,11 @@ export class contentController {
     summary:
       'Get the content data with the collection id with pageNo and limit',
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Get('/pagination')
   async pagination(
+    @Req() request: FastifyRequest,
     @Res() response: FastifyReply,
     @Query('type') type,
     @Query('collectionId') collectionId,
@@ -442,6 +463,12 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
+      // Add the check for the limit
+      if (limit < 5) {
+        limit = 5;
+      } else if (limit > 20) {
+        limit = 20;
+      }
       const skip = (page - 1) * limit;
       const { data } = await this.contentService.pagination(
         skip,
@@ -464,12 +491,14 @@ export class contentController {
         });
       }
       return response.status(HttpStatus.OK).send({
+        apiVersion: request?.version,
         status: 'success',
         data,
         totalSyllableCount: totalSyllableCount,
       });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -570,8 +599,11 @@ export class contentController {
       },
     },
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Get('/getRandomContent')
   async getRandomContent(
+    @Req() request: FastifyRequest,
     @Res() response: FastifyReply,
     @Query('type') type,
     @Query('language') language,
@@ -584,9 +616,14 @@ export class contentController {
         type,
         language,
       );
-      return response.status(HttpStatus.OK).send({ status: 'success', data });
+      return response.status(HttpStatus.OK).send({
+        apiVersion: request?.version,
+        status: 'success',
+        data
+      });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -594,8 +631,11 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Get('/getContentWord')
   async getContentWord(
+    @Req() request: FastifyRequest,
     @Res() response: FastifyReply,
     @Query('language') language,
     @Query() { limit = 5 },
@@ -606,9 +646,14 @@ export class contentController {
         parseInt(Batch),
         language,
       );
-      return response.status(HttpStatus.OK).send({ status: 'success', data });
+      return response.status(HttpStatus.OK).send({
+        apiVersion: request?.version,
+        status: 'success',
+        data
+      });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -616,8 +661,11 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Get('/getContentSentence')
   async getContentSentence(
+    @Req() request: FastifyRequest,
     @Res() response: FastifyReply,
     @Query('language') language,
     @Query() { limit = 5 },
@@ -628,9 +676,14 @@ export class contentController {
         parseInt(Batch),
         language,
       );
-      return response.status(HttpStatus.OK).send({ status: 'success', data });
+      return response.status(HttpStatus.OK).send({
+        apiVersion: request?.version,
+        status: 'success',
+        data
+      });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -638,8 +691,11 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Get('/getContentParagraph')
   async getContentParagraph(
+    @Req() request: FastifyRequest,
     @Res() response: FastifyReply,
     @Query('language') language,
     @Query() { limit = 5 },
@@ -650,9 +706,14 @@ export class contentController {
         parseInt(Batch),
         language,
       );
-      return response.status(HttpStatus.OK).send({ status: 'success', data });
+      return response.status(HttpStatus.OK).send({
+        apiVersion: request?.version,
+        status: 'success',
+        data
+      });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -884,8 +945,14 @@ export class contentController {
   @ApiOperation({
     summary: 'Get all data from the content table'
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Post('/getContent')
-  async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
+  async getContent(
+    @Req() request: FastifyRequest,
+    @Res() response: FastifyReply,
+    @Body() queryData: any) {
+
     try {
       const Batch: any = queryData.limit || 5;
       let contentCollection;
@@ -928,12 +995,14 @@ export class contentController {
       }
 
       return response.status(HttpStatus.CREATED).send({
+        apiVersion: request?.version,
         status: 'success',
         data: contentCollection,
       });
     } catch (error) {
       console.log(error);
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -941,19 +1010,23 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Post('/getContentByFilters')
-  async getContentByFilters(@Res() response: FastifyReply, @Body() queryData: any) {
+  async getContentByFilters(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Body() queryData: any) {
     try {
       let Batch: any = queryData.limit || 5;
 
       const contentCollection = await this.contentService.searchByFilter(queryData?.syllableList, queryData?.syllableCount, queryData?.wordCount, queryData?.totalOrthoComplexity, queryData?.totalPhonicComplexity, queryData?.meanPhonicComplexity, queryData.language, queryData.contentType, parseInt(Batch), queryData?.contentId, queryData?.collectionId, queryData?.tags);
       return response.status(HttpStatus.CREATED).send({
+        apiVersion: request?.version,
         status: "success",
         data: contentCollection,
       });
     } catch (error) {
       console.log(error);
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: "error",
         message: "Server error - " + error
       });
@@ -1019,8 +1092,10 @@ export class contentController {
   @ApiOperation({
     summary: 'Get Assessments data'
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Post('/getAssessment')
-  async getAssessment(@Res() response: FastifyReply, @Body() queryData: any) {
+  async getAssessment(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Body() queryData: any) {
     try {
       let contentCollection;
 
@@ -1043,9 +1118,13 @@ export class contentController {
         contentCollection = await this.collectionService.getAssessment(queryData.tags, queryData.language);
       }
 
-      return response.status(HttpStatus.CREATED).send(contentCollection);
+      return response.status(HttpStatus.CREATED).send({
+        apiVersion: request?.version,
+        contentCollection
+      });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: "error",
         message: "Server error - " + error
       });
@@ -1053,8 +1132,10 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Post('/getContentForMileStone')
-  async get(@Res() response: FastifyReply, @Body() queryData: any) {
+  async get(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Body() queryData: any) {
     try {
       const Batch: any = queryData.limit || 5;
       const contentCollection = await this.contentService.getContentLevelData(
@@ -1065,11 +1146,13 @@ export class contentController {
         queryData.contentType,
       );
       return response.status(HttpStatus.CREATED).send({
+        apiVersion: request?.version,
         status: 'success',
         contentCollection,
       });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -1077,14 +1160,17 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Get()
-  async fetchAll(@Res() response: FastifyReply, @Query('page') page: number = 1, @Query('limit') limit: number = 20) {
+  async fetchAll(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Query('page') page: number = 1, @Query('limit') limit: number = 20) {
     try {
       const limitCount = limit;
       const data = await this.contentService.readAll(page, limit);
       const dataCount: any = await this.contentService.countAll();
       const pageCount = Math.trunc(dataCount / limitCount);
       return response.status(HttpStatus.OK).send({
+        apiVersion: request?.version,
         status: 'success',
         recordCount: dataCount,
         pageCount: pageCount,
@@ -1093,6 +1179,7 @@ export class contentController {
 
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: "error",
         message: "Server error - " + error
       });
@@ -1100,17 +1187,23 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Get('/:id')
-  async findById(@Res() response: FastifyReply, @Param('id') id) {
+  async findById(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Param('id') id) {
     const content = await this.contentService.readById(id);
     return response.status(HttpStatus.OK).send({
+      apiVersion: request?.version,
       content,
     });
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Put('/:id')
   async update(
+    @Req() request: FastifyRequest,
     @Res() response: FastifyReply,
     @Param('id') id,
     @Body() content: any,
@@ -1250,11 +1343,13 @@ export class contentController {
       const updatedContent = await this.contentService.update(id, content);
 
       return response.status(HttpStatus.OK).send({
+        apiVersion: request?.version,
         status: 'success',
         data: updatedContent,
       });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -1262,10 +1357,13 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Delete('/:id')
-  async delete(@Res() response: FastifyReply, @Param('id') id) {
+  async delete(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Param('id') id) {
     const deleted = await this.contentService.delete(id);
     return response.status(HttpStatus.OK).send({
+      apiVersion: request?.version,
       deleted,
     });
   }

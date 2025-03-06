@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, now, Mixed } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsArray, IsObject } from 'class-validator';
 
 @Schema({ collection: 'content' })
 export class content {
@@ -29,6 +29,46 @@ export class content {
 
   @Prop({ required: true })
   contentSourceData: [Mixed];
+
+  @Prop({ required: false, type: Array })
+  @IsOptional()
+  @IsArray()
+  mechanics_data: [
+    {
+      mechanics_id: string;
+      language:string;
+      jumbled_text: string;
+      text: string;
+      audio_url: string;
+      image_url: string;
+      options: [
+        {
+          text: string;
+          audio_url: string;
+          image_url: string;
+          isAns: boolean;
+          side: string;
+        }
+      ];
+      hints: {
+        text: string;
+        audio_url: string;
+        image_url: string;
+      };
+      time_limit: number;
+      correctness: {
+        "50%": [string],
+      }
+    }
+  ];
+
+  @Prop({ type: Object, required: false })
+  @IsOptional()
+  @IsObject()
+  level_complexity: {
+    level: string;
+    level_competency: string;
+  };
 
   @Prop({ type: String, required: false })
   @IsOptional()

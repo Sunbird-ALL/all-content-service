@@ -7,27 +7,32 @@ import {
   Param,
   Post,
   Put,
+  Req,
   Res,
+  UseInterceptors,
+  Version
 } from '@nestjs/common';
 import { collection } from 'src/schemas/collection.schema';
 import { CollectionService } from 'src/services/collection.service';
-import { FastifyReply } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import {
   ApiBody,
-  ApiExcludeEndpoint,
   ApiForbiddenResponse,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserIdInterceptor } from 'src/interceptors/user_id.interceptor';
+import { VersionedAuthInterceptor } from 'src/interceptors/versioned-auth.interceptor';
 
 @ApiTags('collection')
 @Controller('collection')
+@UseInterceptors(UserIdInterceptor)
 export class CollectionController {
   constructor(private readonly CollectionService: CollectionService) { }
 
-  
+
   @ApiBody({
     description: 'Request body for storing data to collection',
     schema: {
@@ -86,16 +91,20 @@ export class CollectionController {
     summary:
       'Store collection data for adding the content with the reference of the colletion id',
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Post()
-  async create(@Res() response: FastifyReply, @Body() collection: collection) {
+  async create(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Body() collection: collection) {
     try {
       const newCollection = await this.CollectionService.create(collection);
       return response.status(HttpStatus.CREATED).send({
+        apiVersion: request?.version,
         status: 'success',
         data: newCollection,
       });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -147,19 +156,26 @@ export class CollectionController {
   @ApiOperation({
     summary: 'Get all data from the collection'
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Get()
-  async fatchAll(@Res() response: FastifyReply) {
+  async fatchAll(@Req() request: FastifyRequest, @Res() response: FastifyReply) {
     try {
       const data = await this.CollectionService.readAll();
-      return response.status(HttpStatus.OK).send({ status: 'success', data });
+      return response.status(HttpStatus.OK).send({
+        apiVersion: request?.version,
+        status: 'success',
+        data
+      });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
     }
   }
-  
+
 
   @ApiParam({
     name: 'language',
@@ -209,16 +225,24 @@ export class CollectionController {
   @ApiOperation({
     summary: 'Get all data from the collection with the specific language'
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Get('/bylanguage/:language')
   async fatchByLanguage(
+    @Req() request: FastifyRequest,
     @Res() response: FastifyReply,
     @Param('language') language,
   ) {
     try {
       const data = await this.CollectionService.readbyLanguage(language);
-      return response.status(HttpStatus.OK).send({ status: 'success', data });
+      return response.status(HttpStatus.OK).send({
+        apiVersion: request?.version,
+        status: 'success',
+        data
+      });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        apiVersion: request?.version,
         status: 'error',
         message: 'Server error - ' + error,
       });
@@ -270,10 +294,13 @@ export class CollectionController {
   @ApiOperation({
     summary: 'Get the collection data for collection id'
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Get('/:id')
-  async findById(@Res() response: FastifyReply, @Param('id') id) {
+  async findById(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Param('id') id) {
     const collection = await this.CollectionService.readById(id);
     return response.status(HttpStatus.OK).send({
+      apiVersion: request?.version,
       collection,
     });
   }
@@ -342,14 +369,18 @@ export class CollectionController {
   @ApiOperation({
     summary: 'update the collection data using collection id'
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Put('/:id')
   async update(
+    @Req() request: FastifyRequest,
     @Res() response: FastifyReply,
     @Param('id') id,
     @Body() collection: collection,
   ) {
     const updated = await this.CollectionService.update(id, collection);
     return response.status(HttpStatus.OK).send({
+      apiVersion: request?.version,
       updated,
     });
   }
@@ -399,10 +430,13 @@ export class CollectionController {
   @ApiOperation({
     summary: 'delete the collection data using collection id'
   })
+  @Version(['1', '2'])
+  @UseInterceptors(VersionedAuthInterceptor)
   @Delete('/:id')
-  async delete(@Res() response: FastifyReply, @Param('id') id) {
+  async delete(@Req() request: FastifyRequest, @Res() response: FastifyReply, @Param('id') id) {
     const deleted = await this.CollectionService.delete(id);
     return response.status(HttpStatus.OK).send({
+      apiVersion: request?.version,
       deleted,
     });
   }

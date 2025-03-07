@@ -10,9 +10,6 @@ import { ConfigModule } from '@nestjs/config';
 import { CollectionController } from './controllers/collection.controller';
 import { CollectionService } from './services/collection.service';
 import { HttpModule } from '@nestjs/axios';
-import { AuthModule } from './auth/auth.module';
-import { JwtService } from '@nestjs/jwt';
-import { JwtAuthGuard } from './auth/auth.guard';
 
 @Module({
   imports: [
@@ -39,9 +36,8 @@ import { JwtAuthGuard } from './auth/auth.guard';
       { name: content.name, schema: contentSchema },
       { name: collection.name, schema: collectionDbSchema },
     ]),
-    AuthModule,
   ],
   controllers: [AppController, contentController, CollectionController],
-  providers: [AppService, contentService, CollectionService, JwtService, JwtAuthGuard],
+  providers: [AppService, contentService, CollectionService],
 })
 export class AppModule {}

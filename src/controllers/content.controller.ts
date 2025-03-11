@@ -1111,6 +1111,7 @@ export class contentController {
           }
         }
         contentCollection = {
+          apiVersion: request?.version,
           data: collectionArr,
           status: 200
         };
@@ -1118,10 +1119,7 @@ export class contentController {
         contentCollection = await this.collectionService.getAssessment(queryData.tags, queryData.language);
       }
 
-      return response.status(HttpStatus.CREATED).send({
-        apiVersion: request?.version,
-        contentCollection
-      });
+      return response.status(HttpStatus.CREATED).send(contentCollection);
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
         apiVersion: request?.version,

@@ -16,7 +16,7 @@ export class AppController {
    checkHealth(): { status: boolean; message: string } {
      return {
        status: true,
-       message: 'content Service App is working',
+       message: 'content ServiceApp is working',
      };
    }
 }

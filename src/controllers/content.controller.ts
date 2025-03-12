@@ -890,8 +890,46 @@ export class contentController {
       const Batch: any = queryData.limit || 5;
 
       let contentCollection;
+      let collectionId;
 
-      if(queryData.mechanics_id === undefined){
+      if(queryData.story_mode === "true" && queryData.level_competency.length > 0) { 
+        collectionId = await this.collectionService.getCompetencyCollections(queryData.level_competency, queryData.language, queryData.contentType);
+        const contentData = await this.contentService.pagination(0, parseInt(Batch),queryData.contentType,collectionId);
+        let contentArr = contentData['data'];
+
+        if(contentArr.length === 0){
+          
+          await this.contentService.search(
+            queryData.tokenArr,
+            queryData.language,
+            queryData.contentType,
+            parseInt(Batch),
+            queryData.tags,
+            queryData.cLevel,
+            queryData.complexityLevel,
+            queryData.graphemesMappedObj,
+            queryData.level_competency
+          ).then((contentData)=>{
+            contentArr = contentData['wordsArr'];
+          });
+        }
+
+        if(queryData.mechanics_id !== undefined){
+          contentArr.map((content) => {
+            const { mechanics_data } = content;
+            if(mechanics_data){
+            const mechanicData = mechanics_data.find(
+              (mechanic) => {return mechanic.mechanics_id === queryData.mechanics_id}
+            );
+            content.mechanics_data = [];
+            content.mechanics_data.push(mechanicData);
+          }});
+        }
+        
+        contentCollection ={ wordsArr:contentArr};
+      }
+
+      if(queryData.mechanics_id === undefined && collectionId === undefined){
         contentCollection = await this.contentService.search(
           queryData.tokenArr,
           queryData.language,
@@ -903,7 +941,7 @@ export class contentController {
           queryData.graphemesMappedObj,
           queryData.level_competency
         );
-      }else{
+      }else if(queryData.mechanics_id !== undefined && collectionId === undefined){
         contentCollection = await this.contentService.getMechanicsContentData(
           queryData.contentType,
           queryData.mechanics_id,

@@ -23,8 +23,13 @@ export class contentService {
     }
   }
 
-  async readAll(): Promise<content[]> {
-    return await this.content.find().exec();
+  async readAll(page: number, limit: number): Promise<content[]> {
+    const skip = (page - 1) * limit;
+    return this.content.find().skip(skip).limit(limit).exec();
+  }
+
+  async countAll(): Promise<number> {
+    return await this.content.countDocuments().exec();
   }
 
   async readById(id): Promise<content> {
@@ -546,7 +551,9 @@ export class contentService {
 
         const allCharRegexPattern = new RegExp(`\\B(${searchChar})`, 'gu');
 
+        if (tokenArr?.length > 0) {
         query.contentSourceData.$elemMatch['text']['$regex'] = allCharRegexPattern;
+        }
 
         await this.content
           .aggregate([
@@ -587,12 +594,15 @@ export class contentService {
       }
 
       // Remove Ortho complexity
-      if (contentData.length < limit) {
+      if (contentData.length < limit && contentType.toLocaleLowerCase() !== 'paragraph') {
+
         mileStoneQuery = mileStoneQuery.filter((mileStoneQueryEle) => {
           return !mileStoneQueryEle.hasOwnProperty('totalOrthoComplexity');
         });
 
+        if(mileStoneQuery != undefined || mileStoneQuery.length != 0) {
         query.contentSourceData.$elemMatch['$or'] = mileStoneQuery;
+        }
 
         await this.content
           .aggregate([
@@ -630,10 +640,10 @@ export class contentService {
               }
             }
           });
-      }
+      }   
 
       // Remove Phonic complexity
-      if (contentData.length < limit) {
+      if (contentData.length < limit && contentType.toLocaleLowerCase() !== 'paragraph') {
         delete query.contentSourceData.$elemMatch['$or']
 
         await this.content
@@ -738,7 +748,7 @@ export class contentService {
       }
 
       // Remove tokens
-      if (contentData.length < limit) {
+      if (contentData.length < limit && tokenArr?.length > 0) {
 
         delete query.contentSourceData.$elemMatch['text'];
 
@@ -838,15 +848,10 @@ export class contentService {
         );
         const text: string = contentDataEle.contentSourceData[0]['text'].trim();
         const matchRes = text.match(regexMatchBegin);
-        if (matchRes != null) {
-          let matchedChar = [];
-
-          if (unicodeArray.length != 0) {
-            matchedChar = text.match(
-              new RegExp(`(${unicodeArray.join('|')})`, 'gu'),
-            );
-          }
-
+        if (matchRes != null && tokenArr?.length > 0) {
+          const matchedChar = text.match(
+            new RegExp(`(${unicodeArray.join('|')})`, 'gu'),
+          );
           wordsArr.push({ ...contentDataEle, matchedChar: matchedChar });
         } else {
           wordsArr.push({ ...contentDataEle, matchedChar: [] });
@@ -947,7 +952,7 @@ export class contentService {
         for (const tokenArrEle of tokenArr) {
           const contentForTokenArr = [];
           for (const wordsArrEle of wordsArr) {
-            if (wordsArrEle)
+            if (wordsArrEle.matchedChar && tokenArr?.length > 0){
               for (const matchedCharEle of wordsArrEle.matchedChar) {
                 if (
                   matchedCharEle.match(new RegExp(`(${tokenArrEle})`, 'gu')) !=
@@ -956,9 +961,10 @@ export class contentService {
                   contentForTokenArr.push(wordsArrEle);
                 }
               }
+            }
           }
 
-          if (contentForTokenArr.length === 0 && contentType !== 'char') {
+          if (contentForTokenArr.length === 0 && contentType !== 'char' && tokenArr?.length > 0) {
             query.contentSourceData.$elemMatch.text = new RegExp(
               `(${tokenArrEle})`,
               'gu',

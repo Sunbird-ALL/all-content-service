@@ -32,10 +32,10 @@ export class contentService {
     return await this.content.countDocuments().exec();
   }
 
-  async readById(id): Promise<content> {
-    return await this.content.findById(id).exec();
+  async readById(id:any): Promise<content> {
+    return await this.content.findOne({ contentId: id }).exec();
   }
-
+  
   async update(id, content: content): Promise<content> {
     return await this.content.findByIdAndUpdate(id, content, { new: true });
   }

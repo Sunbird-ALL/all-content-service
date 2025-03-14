@@ -11,12 +11,11 @@ export class AppController {
     return this.appService.getHello();
   }
 
-   // Health check endpoint
-   @Get('/ping')
-   checkHealth(): { status: boolean; message: string } {
-     return {
-       status: true,
-       message: 'content Service App is working',
-     };
-   }
+  @Get('/ping')
+  checkHealth(): { status: boolean; message: string } {
+    return {
+      status: true,
+      message: 'Content service App is working',
+    };
+  }
 }

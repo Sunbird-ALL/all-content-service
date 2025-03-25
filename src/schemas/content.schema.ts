@@ -37,11 +37,12 @@ export class content {
     {
       mechanics_id: string;
       language:string;
-      jumbled_text: string;
-      text: string;
-      audio_url: string;
-      image_url: string;
-      options: [
+      content_body?:string;
+      jumbled_text?: string;
+      text?: string;
+      audio_url?: string;
+      image_url?: string;
+      options?: [
         {
           text: string;
           audio_url: string;
@@ -50,13 +51,13 @@ export class content {
           side: string;
         }
       ];
-      hints: {
+      hints?: {
         text: string;
         audio_url: string;
         image_url: string;
       };
-      time_limit: number;
-      correctness: {
+      time_limit?: number;
+      correctness?: {
         "50%": [string],
       }
     }

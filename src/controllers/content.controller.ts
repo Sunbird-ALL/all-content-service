@@ -218,8 +218,8 @@ export class contentController {
               syllableCountMap: syllableCountMap,
             };
           } else if (contentSourceDataEle['language'] === 'en') {
-            const url = process.env.ALL_TEXT_EVAL_URL + 'getPhonemes';
-
+            const url = 'https://www.learnerai-dev.theall.ai/text-eval/' + 'getPhonemes';
+            
             const textData = {
               text: contentSourceDataEle['text'],
             };
@@ -230,6 +230,7 @@ export class contentController {
                   headers: {
                     'Content-Type': 'application/json',
                   },
+                  timeout: 10000, // Increase timeout to 10 seconds
                 })
                 .pipe(map((resp) => resp.data)),
             );

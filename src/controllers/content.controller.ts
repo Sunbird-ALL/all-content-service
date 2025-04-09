@@ -148,7 +148,7 @@ export class contentController {
   @Post()
   async create(@Res() response: FastifyReply, @Body() content: any) {
     try {
-      const lcSupportedLanguages = ['ta', 'ka', 'hi', 'te', 'kn'];
+      const lcSupportedLanguages = ['ta', 'ka', 'hi', 'te', 'kn', "gu", "or"];
 
       const updatedcontentSourceData = await Promise.all(
         content.contentSourceData.map(async (contentSourceDataEle) => {
@@ -320,7 +320,7 @@ export class contentController {
       });
     }
   }
-  
+
   @ApiExcludeEndpoint(true)
   @Post('search')
   async searchContent(@Res() response: FastifyReply, @Body() tokenData: any) {
@@ -375,7 +375,7 @@ export class contentController {
     required: true,
     schema: {
       properties: {
-        type:{ type: 'string', description: 'content type', example: 'word' },
+        type: { type: 'string', description: 'content type', example: 'word' },
         page: { type: 'number', description: 'Page number', example: 1 },
         limit: { type: 'number', description: 'Items per page', example: 10 },
         collectionId: { type: 'string', description: 'ID of the collection', example: '3f0192af-0720-4248-b4d4-d99a9f731d4f' }
@@ -451,7 +451,7 @@ export class contentController {
         collectionId,
       );
       const language = data[0].language;
-      
+
       let totalSyllableCount = 0;
       if (language === 'en') {
         data.forEach((contentObject: any) => {
@@ -483,7 +483,7 @@ export class contentController {
     required: true,
     schema: {
       properties: {
-        type:{ type: 'string', description: 'content type', example: 'word' },
+        type: { type: 'string', description: 'content type', example: 'word' },
         language: { type: 'number', description: 'Page number', example: 1 },
         limit: { type: 'number', description: 'Items per page', example: 10 }
       }
@@ -666,44 +666,44 @@ export class contentController {
     schema: {
       type: 'object',
       properties: {
-        tokenArr: { 
-          type: 'array', 
-          description: 'Array of tokens', 
+        tokenArr: {
+          type: 'array',
+          description: 'Array of tokens',
           items: {
             type: 'string',
             example: 'c'
           }
         },
-        language: { 
-          type: 'string', 
-          description: 'Language code', 
-          example: 'en' 
+        language: {
+          type: 'string',
+          description: 'Language code',
+          example: 'en'
         },
-        contentType: { 
-          type: 'string', 
-          description: 'Type of content', 
-          example: 'Word' 
+        contentType: {
+          type: 'string',
+          description: 'Type of content',
+          example: 'Word'
         },
-        limit: { 
-          type: 'number', 
-          description: 'Limit on the number of items', 
-          example: 5 
+        limit: {
+          type: 'number',
+          description: 'Limit on the number of items',
+          example: 5
         },
-        cLevel: { 
-          type: 'string', 
-          description: 'Content level', 
-          example: 'L2' 
+        cLevel: {
+          type: 'string',
+          description: 'Content level',
+          example: 'L2'
         },
-        complexityLevel: { 
-          type: 'array', 
-          description: 'Array of complexity levels', 
+        complexityLevel: {
+          type: 'array',
+          description: 'Array of complexity levels',
           items: {
             type: 'string',
             example: 'C1'
           }
         },
-        graphemesMappedObj: { 
-          type: 'object', 
+        graphemesMappedObj: {
+          type: 'object',
           description: 'Object mapping graphemes to their representations',
           additionalProperties: {
             type: 'array',
@@ -885,7 +885,7 @@ export class contentController {
   @ApiOperation({
     summary: 'Get all data from the content table'
   })
-  @Post('/getContent')
+    @Post('/getContent')
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
       const Batch: any = queryData.limit || 5;
@@ -993,18 +993,18 @@ export class contentController {
     schema: {
       type: 'object',
       properties: {
-        tags: { 
-          type: 'array', 
-          description: 'Array of tags', 
+        tags: {
+          type: 'array',
+          description: 'Array of tags',
           items: {
             type: 'string',
             example: 'ASER'
           }
         },
-        language: { 
-          type: 'string', 
-          description: 'Language code', 
-          example: 'ta' 
+        language: {
+          type: 'string',
+          description: 'Language code',
+          example: 'ta'
         }
       }
     }
@@ -1104,14 +1104,23 @@ export class contentController {
 
   @ApiExcludeEndpoint(true)
   @Get()
-  async fatchAll(@Res() response: FastifyReply) {
+  async fetchAll(@Res() response: FastifyReply, @Query('page') page: number = 1, @Query('limit') limit: number = 20) {
     try {
-      const data = await this.contentService.readAll();
-      return response.status(HttpStatus.OK).send({ status: 'success', data });
+      const limitCount = limit;
+      const data = await this.contentService.readAll(page, limit);
+      const dataCount: any = await this.contentService.countAll();
+      const pageCount = Math.trunc(dataCount / limitCount);
+      return response.status(HttpStatus.OK).send({
+        status: 'success',
+        recordCount: dataCount,
+        pageCount: pageCount,
+        data
+      });
+
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-        status: 'error',
-        message: 'Server error - ' + error,
+        status: "error",
+        message: "Server error - " + error
       });
     }
   }

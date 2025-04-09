@@ -23,14 +23,19 @@ export class contentService {
     }
   }
 
-  async readAll(): Promise<content[]> {
-    return await this.content.find().exec();
+  async readAll(page: number, limit: number): Promise<content[]> {
+    const skip = (page - 1) * limit;
+    return this.content.find().skip(skip).limit(limit).exec();
   }
 
-  async readById(id): Promise<content> {
-    return await this.content.findById(id).exec();
+  async countAll(): Promise<number> {
+    return await this.content.countDocuments().exec();
   }
 
+  async readById(id:any): Promise<content> {
+    return await this.content.findOne({ contentId: id }).exec();
+  }
+  
   async update(id, content: content): Promise<content> {
     return await this.content.findByIdAndUpdate(id, content, { new: true });
   }
@@ -70,6 +75,31 @@ export class contentService {
       },
       {
         $sort: { contentIndex: 1 }
+      }
+    ]).exec();
+    return {
+      data: data,
+      status: 200,
+    };
+  }
+
+  async getStoryContent(contentType: any, collectionId: any) {
+    const data = await this.content.aggregate([
+      {
+        $match: {
+          collectionId: collectionId
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          contentType: 1,
+          contentId: 1,
+          language: 1,
+          "contentSourceData.text": 1,
+          "contentSourceData.phonemes": 1,
+          "contentSourceData.syllableCount": 1,
+        }
       }
     ]).exec();
     return {
@@ -324,7 +354,6 @@ export class contentService {
     cLevel,
     complexityLevel,
     graphemesMappedObj,
-    level_competency = []
   ): Promise<any> {
     let nextTokenArr = []
     if (tokenArr.length >= (limit * 2)) {
@@ -546,7 +575,9 @@ export class contentService {
 
         const allCharRegexPattern = new RegExp(`\\B(${searchChar})`, 'gu');
 
+        if (tokenArr?.length > 0) {
         query.contentSourceData.$elemMatch['text']['$regex'] = allCharRegexPattern;
+        }
 
         await this.content
           .aggregate([
@@ -587,12 +618,15 @@ export class contentService {
       }
 
       // Remove Ortho complexity
-      if (contentData.length < limit) {
+      if (contentData.length < limit && contentType.toLocaleLowerCase() !== 'paragraph') {
+
         mileStoneQuery = mileStoneQuery.filter((mileStoneQueryEle) => {
           return !mileStoneQueryEle.hasOwnProperty('totalOrthoComplexity');
         });
 
+        if(mileStoneQuery != undefined || mileStoneQuery.length != 0) {
         query.contentSourceData.$elemMatch['$or'] = mileStoneQuery;
+        }
 
         await this.content
           .aggregate([
@@ -630,10 +664,10 @@ export class contentService {
               }
             }
           });
-      }
+      }   
 
       // Remove Phonic complexity
-      if (contentData.length < limit) {
+      if (contentData.length < limit && contentType.toLocaleLowerCase() !== 'paragraph') {
         delete query.contentSourceData.$elemMatch['$or']
 
         await this.content
@@ -738,7 +772,7 @@ export class contentService {
       }
 
       // Remove tokens
-      if (contentData.length < limit) {
+      if (contentData.length < limit && tokenArr?.length > 0) {
 
         delete query.contentSourceData.$elemMatch['text'];
 
@@ -782,6 +816,7 @@ export class contentService {
 
       // remove all criteria and get random content with content type
       if (contentData.length <= limit) {
+
         let randomContentQuery = {
           contentSourceData: {
             $elemMatch: {
@@ -828,7 +863,7 @@ export class contentService {
             }
           }
         });
-        }
+      }
 
 
       for (let contentDataEle of contentData) {
@@ -838,15 +873,10 @@ export class contentService {
         );
         const text: string = contentDataEle.contentSourceData[0]['text'].trim();
         const matchRes = text.match(regexMatchBegin);
-        if (matchRes != null) {
-          let matchedChar = [];
-
-          if (unicodeArray.length != 0) {
-            matchedChar = text.match(
-              new RegExp(`(${unicodeArray.join('|')})`, 'gu'),
-            );
-          }
-
+        if (matchRes != null && tokenArr?.length > 0) {
+          const matchedChar = text.match(
+            new RegExp(`(${unicodeArray.join('|')})`, 'gu'),
+          );
           wordsArr.push({ ...contentDataEle, matchedChar: matchedChar });
         } else {
           wordsArr.push({ ...contentDataEle, matchedChar: [] });
@@ -947,7 +977,7 @@ export class contentService {
         for (const tokenArrEle of tokenArr) {
           const contentForTokenArr = [];
           for (const wordsArrEle of wordsArr) {
-            if (wordsArrEle)
+            if (wordsArrEle.matchedChar && tokenArr?.length > 0){
               for (const matchedCharEle of wordsArrEle.matchedChar) {
                 if (
                   matchedCharEle.match(new RegExp(`(${tokenArrEle})`, 'gu')) !=
@@ -956,9 +986,10 @@ export class contentService {
                   contentForTokenArr.push(wordsArrEle);
                 }
               }
+            }
           }
 
-          if (contentForTokenArr.length === 0 && contentType !== 'char') {
+          if (contentForTokenArr.length === 0 && contentType !== 'char' && tokenArr?.length > 0) {
             query.contentSourceData.$elemMatch.text = new RegExp(
               `(${tokenArrEle})`,
               'gu',
@@ -1065,10 +1096,6 @@ export class contentService {
 
       if (tags?.length > 0) {
         query["tags"] = { $all: tags };
-      }
-
-      if (level_competency?.length > 0) {
-        query["level_complexity.level_competency"] = {$in:level_competency};
       }
 
       const allTokenGraphemes = [];
@@ -1259,150 +1286,6 @@ export class contentService {
               }
             }
           });
-      }
-
-      // remove all criteria and get random content with level conpetency
-      if (contentData.length <= limit && level_competency?.length > 0) {
-        let randomContentQuery = {
-            contentSourceData: {
-              $elemMatch: {
-              },
-            },
-          contentType: contentType,
-          "level_complexity.level_competency": {$in:level_competency}
-        };
-        
-        randomContentQuery.contentSourceData.$elemMatch['language'] = en_config.language_code;
-        
-        await this.content
-        .aggregate([
-                {
-                  $addFields: {
-                    contentSourceData: {
-                      $map: {
-                        input: '$contentSourceData',
-                        as: 'elem',
-                        in: {
-                          $mergeObjects: [
-                            '$$elem',
-                            {
-                              syllableCountArray: {
-                                $objectToArray: '$$elem.syllableCountMap',
-                              },
-                            },
-                          ],
-                        },
-                      },
-                    },
-                  },
-                },
-                {
-                  $match: randomContentQuery,
-                },
-                { $sample: { size: limit - contentData.length } },
-        ])
-        .exec()
-        .then((doc) => {
-                for (const docEle of doc) {
-                  if (contentData.length == 0 || !contentDataSet.has(docEle.contentId)) {
-                    contentDataSet.add(docEle.contentId);
-                    contentData.push(docEle);
-                  }
-                }
-        });
-      }
-
-      if (contentData.length <= limit) {
-        if (level_competency?.length > 0) {
-          query["level_complexity.level_competency"] = { $exists: true }
-        }
-
-        await this.content
-          .aggregate([
-            {
-              $addFields: {
-                contentSourceData: {
-                  $map: {
-                    input: '$contentSourceData',
-                    as: 'elem',
-                    in: {
-                      $mergeObjects: [
-                        '$$elem',
-                        {
-                          syllableCountArray: {
-                            $objectToArray: '$$elem.syllableCountMap',
-                          },
-                        },
-                      ],
-                    },
-                  },
-                },
-              },
-            },
-            {
-              $match: query,
-            },
-            { $sample: { size: limit - contentData.length } },
-          ])
-          .exec()
-          .then((doc) => {
-            for (const docEle of doc) {
-              if (contentData.length == 0 || !contentDataSet.has(docEle.contentId)) {
-                contentDataSet.add(docEle.contentId);
-                contentData.push(docEle);
-              }
-            }
-          });
-      }
-
-      // remove all criteria and get random content with content type
-      if (contentData.length <= limit) {
-      let randomContentQuery = {
-        contentSourceData: {
-          $elemMatch: {
-          },
-        },
-        contentType: contentType
-      };
-
-      randomContentQuery.contentSourceData.$elemMatch['language'] = en_config.language_code;
-
-      await this.content
-      .aggregate([
-        {
-          $addFields: {
-            contentSourceData: {
-              $map: {
-                input: '$contentSourceData',
-                as: 'elem',
-                in: {
-                  $mergeObjects: [
-                    '$$elem',
-                    {
-                      syllableCountArray: {
-                        $objectToArray: '$$elem.syllableCountMap',
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-          },
-        },
-        {
-          $match: randomContentQuery,
-        },
-        { $sample: { size: limit - contentData.length } },
-      ])
-      .exec()
-      .then((doc) => {
-        for (const docEle of doc) {
-          if (contentData.length == 0 || !contentDataSet.has(docEle.contentId)) {
-            contentDataSet.add(docEle.contentId);
-            contentData.push(docEle);
-          }
-        }
-      });
       }
 
       // Remove content level
@@ -1826,203 +1709,4 @@ export class contentService {
       return [];
     }
   }
-
-  async getMechanicsContentData(
-    contentType,
-    mechanics_id,
-    limit = 5,
-    language,
-    levelCompetencyArr,
-    tags
-  ) {
-    let queries = [];
-    const numLevels = levelCompetencyArr.length;
-    
-    // Calculate split limit (e.g., for limit 5, splitLimit would be 3 for L1.1 and 2 for L1.2)
-    const splitLimit = Math.ceil(limit / numLevels);
-  
-    if (numLevels > 0 && levelCompetencyArr !== undefined) {
-      levelCompetencyArr.forEach((levelCompetency, levelCompetencyIndex) => {
-        if (levelCompetencyIndex === 0) {
-          if(tags.length > 0){
-            queries.push(
-              this.content.aggregate([
-                {
-                  $match: {
-                    contentType: contentType,
-                    language: language,
-                    mechanics_data: {
-                      $elemMatch: { mechanics_id: mechanics_id, language: language }
-                    },
-                    "level_complexity.level_competency": levelCompetency,
-                    "tags":{ $all: tags }
-                  }
-                },
-                { $sample: { size: splitLimit } }  // Fetch for the first level
-              ])
-            );
-          }else{
-            queries.push(
-              this.content.aggregate([
-                {
-                  $match: {
-                    contentType: contentType,
-                    language: language,
-                    mechanics_data: {
-                      $elemMatch: { mechanics_id: mechanics_id, language: language }
-                    },
-                    "level_complexity.level_competency": levelCompetency
-                  }
-                },
-                { $sample: { size: splitLimit } }  // Fetch for the first level
-              ])
-            );
-          }
-        } else {
-          let handleLimit = limit % 2;
-
-          if(tags.length > 0){
-          queries.push(
-            this.content.aggregate([
-              {
-                $match: {
-                  contentType: contentType,
-                  language: language,
-                  mechanics_data: {
-                    $elemMatch: { mechanics_id: mechanics_id, language: language }
-                  },
-                  "level_complexity.level_competency": levelCompetency,
-                  "tags":{ $all: tags }
-                }
-              },
-              { $sample: { size: splitLimit - handleLimit } }  // Fetch fewer items for other levels
-            ])
-          );
-          }else{
-            queries.push(
-              this.content.aggregate([
-                {
-                  $match: {
-                    contentType: contentType,
-                    language: language,
-                    mechanics_data: {
-                      $elemMatch: { mechanics_id: mechanics_id, language: language }
-                    },
-                    "level_complexity.level_competency": levelCompetency
-                  }
-                },
-                { $sample: { size: splitLimit - handleLimit } }  // Fetch fewer items for other levels
-              ])
-            );
-          }
-        }
-      });
-    }
-  
-    let results = [];
-  
-    // Execute all queries and combine the results
-    const queryResults = await Promise.all(queries);
-  
-    // Merge the results from different level competencies
-    queryResults.forEach((queryResult) => {
-      results = [...results, ...queryResult];
-    });
-  
-    // Ensure total results don't exceed the limit
-    if (results.length > limit) {
-      results = results.slice(0, limit);
-    }
-  
-    // If results are less than the limit, fetch additional content from any level
-    if (results.length < limit) {
-      const remainingLimit = limit - results.length;
-      let additionalContent;
-      if(tags.length > 0){
-        additionalContent= await this.content.aggregate([
-        {
-          $match: {
-            contentType: contentType,
-            language: language,
-            mechanics_data: {
-              $elemMatch: { mechanics_id: mechanics_id, language: language }
-            },
-            "level_complexity.level_competency": { $exists: true },
-            "tags":{ $all: tags }
-          }
-        },
-        { $sample: { size: remainingLimit } }
-      ]);
-      }else{
-        additionalContent = await this.content.aggregate([
-          {
-            $match: {
-              contentType: contentType,
-              language: language,
-              mechanics_data: {
-                $elemMatch: { mechanics_id: mechanics_id, language: language }
-              },
-              "level_complexity.level_competency": { $exists: true }
-            }
-          },
-          { $sample: { size: remainingLimit } }
-        ]);
-      }
-  
-      results = [...results, ...additionalContent];
-    }
-  
-    // If results are still less than the limit, fetch content without level_competency
-    if (results.length < limit) {
-      const remainingLimit = limit - results.length;
-      const fallbackContent = await this.content.aggregate([
-        {
-          $match: {
-            contentType: contentType,
-            language: language,
-            mechanics_data: {
-              $elemMatch: { mechanics_id: mechanics_id, language: language }
-            }
-          }
-        },
-        { $sample: { size: remainingLimit } }
-      ]);
-  
-      results = [...results, ...fallbackContent];
-    }
-
-    // If results are still less than the limit, fetch content without mechanics_data
-    if (results.length < limit) {
-      const remainingLimit = limit - results.length;
-      const fallbackContent = await this.content.aggregate([
-        {
-          $match: {
-            contentType: contentType,
-            language: language,
-          }
-        },
-        { $sample: { size: remainingLimit } }
-      ]);
-  
-      results = [...results, ...fallbackContent];
-    }
-  
-    let wordsArr = results.slice(0, limit);
-
-
-      wordsArr.map((content) => {
-        const { mechanics_data } = content;
-        if(mechanics_data){
-        const mechanicData = mechanics_data.find(
-          (mechanic) => {return mechanic.mechanics_id === mechanics_id}
-        );
-        content.mechanics_data = [];
-        content.mechanics_data.push(mechanicData);
-      }
-        return content;
-      });
-
-    return { wordsArr: wordsArr };
-  }
-  
 }

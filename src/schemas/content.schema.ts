@@ -30,47 +30,6 @@ export class content {
   @Prop({ required: true })
   contentSourceData: [Mixed];
 
-  @Prop({ required: false, type: Array })
-  @IsOptional()
-  @IsArray()
-  mechanics_data: [
-    {
-      mechanics_id: string;
-      language:string;
-      content_body?:string;
-      jumbled_text?: string;
-      text?: string;
-      audio_url?: string;
-      image_url?: string;
-      options?: [
-        {
-          text: string;
-          audio_url: string;
-          image_url: string;
-          isAns: boolean;
-          side: string;
-        }
-      ];
-      hints?: {
-        text: string;
-        audio_url: string;
-        image_url: string;
-      };
-      time_limit?: number;
-      correctness?: {
-        "50%": [string],
-      }
-    }
-  ];
-
-  @Prop({ type: Object, required: false })
-  @IsOptional()
-  @IsObject()
-  level_complexity: {
-    level: string;
-    level_competency: string;
-  };
-
   @Prop({ type: String, required: false })
   @IsOptional()
   @IsString()

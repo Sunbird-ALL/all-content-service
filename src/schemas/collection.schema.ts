@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, now } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
-import { IsObject, IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 @Schema({ collection: 'collection' })
 export class collection {
@@ -111,14 +111,6 @@ export class collection {
   @IsOptional()
   @IsString()
   reviewStatus: string;
-
-  @Prop({ type: Object, required: false })
-  @IsOptional()
-  @IsObject()
-  level_complexity: {
-    level: string;
-    level_competency: string;
-  };
 
   @Prop({ required: true })
   tags: [string];

@@ -218,8 +218,8 @@ export class contentController {
               syllableCountMap: syllableCountMap,
             };
           } else if (contentSourceDataEle['language'] === 'en') {
-            const url = process.env.ALL_TEXT_EVAL_URL + 'getPhonemes';
-
+            const url = 'https://www.learnerai-dev.theall.ai/text-eval/' + 'getPhonemes';
+            
             const textData = {
               text: contentSourceDataEle['text'],
             };
@@ -230,6 +230,7 @@ export class contentController {
                   headers: {
                     'Content-Type': 'application/json',
                   },
+                  timeout: 10000, // Increase timeout to 10 seconds
                 })
                 .pipe(map((resp) => resp.data)),
             );
@@ -884,21 +885,21 @@ export class contentController {
   @ApiOperation({
     summary: 'Get all data from the content table'
   })
-  @Post('/getContent')
+    @Post('/getContent')
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
       const Batch: any = queryData.limit || 5;
+
       let contentCollection;
       let collectionId;
-      if (queryData.story_mode === "true" && queryData.type_of_learner && queryData.type_of_learner !== "") {
-        collectionId = await this.collectionService.getTypeOfLearner(
-          queryData.type_of_learner,
-          queryData.language,
-          queryData.category,
-        );
-        const contentData = await this.contentService.getStoryContent(queryData.contentType, collectionId);
+
+      if(queryData.story_mode === "true" && queryData.level_competency.length > 0) { 
+        collectionId = await this.collectionService.getCompetencyCollections(queryData.level_competency, queryData.language, queryData.contentType);
+        const contentData = await this.contentService.pagination(0, parseInt(Batch),queryData.contentType,collectionId);
         let contentArr = contentData['data'];
-        if (contentArr.length === 0) {
+
+        if(contentArr.length === 0){
+          
           await this.contentService.search(
             queryData.tokenArr,
             queryData.language,
@@ -907,14 +908,29 @@ export class contentController {
             queryData.tags,
             queryData.cLevel,
             queryData.complexityLevel,
-            queryData.graphemesMappedObj,  
-          ).then((contentData) => {
+            queryData.graphemesMappedObj,
+            queryData.level_competency
+          ).then((contentData)=>{
             contentArr = contentData['wordsArr'];
           });
         }
+
+        if(queryData.mechanics_id !== undefined){
+          contentArr.map((content) => {
+            const { mechanics_data } = content;
+            if(mechanics_data){
+            const mechanicData = mechanics_data.find(
+              (mechanic) => {return mechanic.mechanics_id === queryData.mechanics_id}
+            );
+            content.mechanics_data = [];
+            content.mechanics_data.push(mechanicData);
+          }});
+        }
         
-        contentCollection = { wordsArr: contentArr };
-      } else {
+        contentCollection ={ wordsArr:contentArr};
+      }
+
+      if(queryData.mechanics_id === undefined && collectionId === undefined){
         contentCollection = await this.contentService.search(
           queryData.tokenArr,
           queryData.language,
@@ -923,7 +939,17 @@ export class contentController {
           queryData.tags,
           queryData.cLevel,
           queryData.complexityLevel,
-          queryData.graphemesMappedObj
+          queryData.graphemesMappedObj,
+          queryData.level_competency
+        );
+      }else if(queryData.mechanics_id !== undefined && collectionId === undefined){
+        contentCollection = await this.contentService.getMechanicsContentData(
+          queryData.contentType,
+          queryData.mechanics_id,
+          parseInt(Batch),
+          queryData.language,
+          queryData.level_competency,
+          queryData.tags
         );
       }
 

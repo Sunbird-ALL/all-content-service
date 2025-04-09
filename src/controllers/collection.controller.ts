@@ -14,7 +14,6 @@ import { CollectionService } from 'src/services/collection.service';
 import { FastifyReply } from 'fastify';
 import {
   ApiBody,
-  ApiExcludeEndpoint,
   ApiForbiddenResponse,
   ApiOperation,
   ApiParam,

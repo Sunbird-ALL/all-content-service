@@ -21,7 +21,6 @@ import {
   ApiExcludeEndpoint,
   ApiForbiddenResponse,
   ApiOperation,
-  ApiParam,
   ApiResponse,
   ApiTags,
   ApiQuery,
@@ -334,6 +333,7 @@ export class contentController {
         tokenData.cLevel,
         tokenData.complexityLevel,
         tokenData.graphemesMappedObj,
+        tokenData.level_competency
       );
       return response.status(HttpStatus.CREATED).send({
         status: 'success',

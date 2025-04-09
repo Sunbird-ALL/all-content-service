@@ -28,8 +28,9 @@ export class CollectionService {
     return await this.collectionModel.find({ language: language }).exec();
   }
 
-  async readById(id): Promise<collection> {
-    return await this.collectionModel.findById(id).exec();
+
+  async readById(id: any): Promise<collection> {
+    return await this.collectionModel.findOne({ collectionId: id }).exec();
   }
 
   async update(id, collection: collection): Promise<collection> {
@@ -67,27 +68,25 @@ export class CollectionService {
   }
 
 
-  async getCompetencyCollections(level_competency = [],language = "en",contentType): Promise<any[]> {
+  async getCompetencyCollections(level_competency = [], language = "en", contentType): Promise<any> {
     let collectionIds = await this.collectionModel.aggregate([
-      { 
-          $match: { 
-            "level_complexity.level_competency": {$in:level_competency},
-            "language":language,
-            "category": contentType
-          } 
+      {
+        $match: {
+          "level_complexity.level_competency": { $in: level_competency },
+          "language": language,
+          "category": contentType
+        }
       },
-      { 
-          $sample: { size: 1 }
+      {
+        $sample: { size: 1 }
       },
-      { 
-          $project: { collectionId: 1, _id: 0 }
+      {
+        $project: { collectionId: 1, _id: 0 }
       }
+    ])
+  }
 
-  async getTypeOfLearner(
-    type_of_learner: string,
-    language = 'en',
-    category = 'story',
-  ): Promise<any> {
+  async getTypeOfLearner(type_of_learner: string, language = 'en', category = 'story'): Promise<any> {
     let collectionIds = await this.collectionModel.aggregate([
       {
         $match: {

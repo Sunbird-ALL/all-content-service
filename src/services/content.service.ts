@@ -354,6 +354,7 @@ export class contentService {
     cLevel,
     complexityLevel,
     graphemesMappedObj,
+    level_competency = []
   ): Promise<any> {
     let nextTokenArr = []
     if (tokenArr.length >= (limit * 2)) {
@@ -1708,5 +1709,203 @@ export class contentService {
     } else {
       return [];
     }
+  }
+
+  async getMechanicsContentData(
+    contentType,
+    mechanics_id,
+    limit = 5,
+    language,
+    levelCompetencyArr,
+    tags
+  ) {
+    let queries = [];
+    const numLevels = levelCompetencyArr.length;
+    
+    // Calculate split limit (e.g., for limit 5, splitLimit would be 3 for L1.1 and 2 for L1.2)
+    const splitLimit = Math.ceil(limit / numLevels);
+  
+    if (numLevels > 0 && levelCompetencyArr !== undefined) {
+      levelCompetencyArr.forEach((levelCompetency, levelCompetencyIndex) => {
+        if (levelCompetencyIndex === 0) {
+          if(tags.length > 0){
+            queries.push(
+              this.content.aggregate([
+                {
+                  $match: {
+                    contentType: contentType,
+                    language: language,
+                    mechanics_data: {
+                      $elemMatch: { mechanics_id: mechanics_id, language: language }
+                    },
+                    "level_complexity.level_competency": levelCompetency,
+                    "tags":{ $all: tags }
+                  }
+                },
+                { $sample: { size: splitLimit } }  // Fetch for the first level
+              ])
+            );
+          }else{
+            queries.push(
+              this.content.aggregate([
+                {
+                  $match: {
+                    contentType: contentType,
+                    language: language,
+                    mechanics_data: {
+                      $elemMatch: { mechanics_id: mechanics_id, language: language }
+                    },
+                    "level_complexity.level_competency": levelCompetency
+                  }
+                },
+                { $sample: { size: splitLimit } }  // Fetch for the first level
+              ])
+            );
+          }
+        } else {
+          let handleLimit = limit % 2;
+
+          if(tags.length > 0){
+          queries.push(
+            this.content.aggregate([
+              {
+                $match: {
+                  contentType: contentType,
+                  language: language,
+                  mechanics_data: {
+                    $elemMatch: { mechanics_id: mechanics_id, language: language }
+                  },
+                  "level_complexity.level_competency": levelCompetency,
+                  "tags":{ $all: tags }
+                }
+              },
+              { $sample: { size: splitLimit - handleLimit } }  // Fetch fewer items for other levels
+            ])
+          );
+          }else{
+            queries.push(
+              this.content.aggregate([
+                {
+                  $match: {
+                    contentType: contentType,
+                    language: language,
+                    mechanics_data: {
+                      $elemMatch: { mechanics_id: mechanics_id, language: language }
+                    },
+                    "level_complexity.level_competency": levelCompetency
+                  }
+                },
+                { $sample: { size: splitLimit - handleLimit } }  // Fetch fewer items for other levels
+              ])
+            );
+          }
+        }
+      });
+    }
+  
+    let results = [];
+  
+    // Execute all queries and combine the results
+    const queryResults = await Promise.all(queries);
+  
+    // Merge the results from different level competencies
+    queryResults.forEach((queryResult) => {
+      results = [...results, ...queryResult];
+    });
+  
+    // Ensure total results don't exceed the limit
+    if (results.length > limit) {
+      results = results.slice(0, limit);
+    }
+  
+    // If results are less than the limit, fetch additional content from any level
+    if (results.length < limit) {
+      const remainingLimit = limit - results.length;
+      let additionalContent;
+      if(tags.length > 0){
+        additionalContent= await this.content.aggregate([
+        {
+          $match: {
+            contentType: contentType,
+            language: language,
+            mechanics_data: {
+              $elemMatch: { mechanics_id: mechanics_id, language: language }
+            },
+            "level_complexity.level_competency": { $exists: true },
+            "tags":{ $all: tags }
+          }
+        },
+        { $sample: { size: remainingLimit } }
+      ]);
+      }else{
+        additionalContent = await this.content.aggregate([
+          {
+            $match: {
+              contentType: contentType,
+              language: language,
+              mechanics_data: {
+                $elemMatch: { mechanics_id: mechanics_id, language: language }
+              },
+              "level_complexity.level_competency": { $exists: true }
+            }
+          },
+          { $sample: { size: remainingLimit } }
+        ]);
+      }
+  
+      results = [...results, ...additionalContent];
+    }
+  
+    // If results are still less than the limit, fetch content without level_competency
+    if (results.length < limit) {
+      const remainingLimit = limit - results.length;
+      const fallbackContent = await this.content.aggregate([
+        {
+          $match: {
+            contentType: contentType,
+            language: language,
+            mechanics_data: {
+              $elemMatch: { mechanics_id: mechanics_id, language: language }
+            }
+          }
+        },
+        { $sample: { size: remainingLimit } }
+      ]);
+  
+      results = [...results, ...fallbackContent];
+    }
+
+    // If results are still less than the limit, fetch content without mechanics_data
+    if (results.length < limit) {
+      const remainingLimit = limit - results.length;
+      const fallbackContent = await this.content.aggregate([
+        {
+          $match: {
+            contentType: contentType,
+            language: language,
+          }
+        },
+        { $sample: { size: remainingLimit } }
+      ]);
+  
+      results = [...results, ...fallbackContent];
+    }
+  
+    let wordsArr = results.slice(0, limit);
+
+
+      wordsArr.map((content) => {
+        const { mechanics_data } = content;
+        if(mechanics_data){
+        const mechanicData = mechanics_data.find(
+          (mechanic) => {return mechanic.mechanics_id === mechanics_id}
+        );
+        content.mechanics_data = [];
+        content.mechanics_data.push(mechanicData);
+      }
+        return content;
+      });
+
+    return { wordsArr: wordsArr };
   }
 }

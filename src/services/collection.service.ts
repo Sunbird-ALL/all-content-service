@@ -8,7 +8,7 @@ export class CollectionService {
   constructor(
     @InjectModel(collection.name)
     private collectionModel: Model<collectionDocument>,
-  ) {}
+  ) { }
 
   async create(collection: collection): Promise<collection> {
     try {
@@ -56,7 +56,7 @@ export class CollectionService {
           _id: 1,
           name: 1,
           category: 1,
-          collectionId:1
+          collectionId: 1
         }
       }
     ]);
@@ -66,23 +66,48 @@ export class CollectionService {
     };
   }
 
-  async getCompetencyCollections(level_competency = [],language = "en",contentType): Promise<any[]> {
+async getCompetencyCollections(level_competency = [], language = "en", contentType): Promise<any[]> {
     let collectionIds = await this.collectionModel.aggregate([
-      { 
-          $match: { 
-            "level_complexity.level_competency": {$in:level_competency},
-            "language":language,
-            "category": contentType
-          } 
+      {
+        $match: {
+          "level_complexity.level_competency": { $in: level_competency },
+          "language": language,
+          "category": contentType
+        }
       },
-      { 
-          $sample: { size: 1 }
+      {
+        $sample: { size: 1 }
       },
-      { 
-          $project: { collectionId: 1, _id: 0 }
+      {
+        $project: { collectionId: 1, _id: 0 }
       }
     ]);
 
     return collectionIds[0]?.collectionId;
   }
+
+  async getTypeOfLearner(
+    type_of_learner: string,
+    language = 'en',
+    category = 'story',
+  ): Promise<any> {
+    let collectionIds = await this.collectionModel.aggregate([
+      {
+        $match: {
+          type_of_learner: type_of_learner,
+          language: language,
+          category: category,
+        },
+      },
+      {
+        $sample: { size: 1 },
+      },
+      {
+        $project: { collectionId: 1, _id: 0 },
+      },
+    ]);
+
+    return collectionIds[0]?.collectionId;
+  }
 }
+

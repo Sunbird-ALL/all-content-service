@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Res,
+  UseGuards
 } from '@nestjs/common';
 import { collection } from 'src/schemas/collection.schema';
 import { CollectionService } from 'src/services/collection.service';
@@ -21,9 +22,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/auth.guard';
 
 @ApiTags('collection')
 @Controller('collection')
+@UseGuards(JwtAuthGuard)
 export class CollectionController {
   constructor(private readonly CollectionService: CollectionService) { }
 

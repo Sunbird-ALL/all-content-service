@@ -9,6 +9,7 @@ import {
   Put,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { contentService } from '../services/content.service';
 import { CollectionService } from '../services/collection.service';
@@ -26,9 +27,11 @@ import {
   ApiTags,
   ApiQuery,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/auth.guard';
 
 @ApiTags('content')
 @Controller('content')
+@UseGuards(JwtAuthGuard)
 export class contentController {
   constructor(
     private readonly contentService: contentService,
@@ -442,6 +445,12 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
+      // Add the check for the limit
+      if (limit < 5) {
+        limit = 5;
+      } else if (limit > 20) {
+        limit = 20;
+      }
       const skip = (page - 1) * limit;
       const { data } = await this.contentService.pagination(
         skip,
@@ -941,7 +950,8 @@ export class contentController {
           queryData.graphemesMappedObj,
           queryData.level_competency
         );
-      }else if(queryData.mechanics_id !== undefined && collectionId === undefined){
+
+      } else {
         contentCollection = await this.contentService.getMechanicsContentData(
           queryData.contentType,
           queryData.mechanics_id,

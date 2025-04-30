@@ -8,7 +8,7 @@ export class CollectionService {
   constructor(
     @InjectModel(collection.name)
     private collectionModel: Model<collectionDocument>,
-  ) {}
+  ) { }
 
   async create(collection: collection): Promise<collection> {
     try {
@@ -56,7 +56,7 @@ export class CollectionService {
           _id: 1,
           name: 1,
           category: 1,
-          collectionId:1
+          collectionId: 1
         }
       }
     ]);
@@ -65,6 +65,7 @@ export class CollectionService {
       status: 200,
     };
   }
+
 
   async getCompetencyCollections(level_competency = [],language = "en",contentType): Promise<any[]> {
     let collectionIds = await this.collectionModel.aggregate([
@@ -86,3 +87,4 @@ export class CollectionService {
     return collectionIds[0]?.collectionId;
   }
 }
+

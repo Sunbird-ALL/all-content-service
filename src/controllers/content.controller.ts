@@ -219,7 +219,7 @@ export class contentController {
             };
           } else if (contentSourceDataEle['language'] === 'en') {
             const url = process.env.ALL_TEXT_EVAL_URL + 'getPhonemes';
-
+            
             const textData = {
               text: contentSourceDataEle['text'],
             };
@@ -230,6 +230,7 @@ export class contentController {
                   headers: {
                     'Content-Type': 'application/json',
                   },
+                  timeout: 10000, // Increase timeout to 10 seconds
                 })
                 .pipe(map((resp) => resp.data)),
             );
@@ -884,7 +885,7 @@ export class contentController {
   @ApiOperation({
     summary: 'Get all data from the content table'
   })
-  @Post('/getContent')
+    @Post('/getContent')
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
       const Batch: any = queryData.limit || 5;

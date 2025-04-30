@@ -5,7 +5,7 @@ import { IsObject, IsOptional, IsString } from 'class-validator';
 
 @Schema({ collection: 'collection' })
 export class collection {
-  @Prop({ default: uuidv4, index:true})
+  @Prop({ default: uuidv4, index: true })
   collectionId: string;
 
   @Prop({ type: String, required: true })
@@ -41,7 +41,7 @@ export class collection {
   @IsString()
   imagePath: string;
 
-  @Prop({ type: String, required: true, index:true })
+  @Prop({ type: String, required: true, index: true })
   @IsString()
   language: string;
 
@@ -95,7 +95,7 @@ export class collection {
   @Prop({ required: true })
   tags: [string];
 
-  @Prop({ default: now(), index:true })
+  @Prop({ default: now(), index: true })
   createdAt: Date;
 
   @Prop({ default: now() })

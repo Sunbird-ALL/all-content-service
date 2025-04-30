@@ -3,7 +3,7 @@ name: DEV DEPLOYMENT
 on:
   push:
     branches:
-      - test
+      - lais-1.0
 
 jobs:
   build:

@@ -915,7 +915,6 @@ export class contentController {
           });
         }
 
-
         if(queryData.mechanics_id !== undefined){
           contentArr.map((content) => {
             const { mechanics_data } = content;

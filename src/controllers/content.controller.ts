@@ -148,7 +148,7 @@ export class contentController {
   @Post()
   async create(@Res() response: FastifyReply, @Body() content: any) {
     try {
-      const lcSupportedLanguages = ['ta', 'ka', 'hi', 'te', 'kn', "gu", "or"];
+      const lcSupportedLanguages = ['ta', 'ka', 'hi', 'te', 'kn'];
 
       const updatedcontentSourceData = await Promise.all(
         content.contentSourceData.map(async (contentSourceDataEle) => {
@@ -218,7 +218,7 @@ export class contentController {
               syllableCountMap: syllableCountMap,
             };
           } else if (contentSourceDataEle['language'] === 'en') {
-            const url = 'https://www.learnerai-dev.theall.ai/text-eval/' + 'getPhonemes';
+            const url = process.env.ALL_TEXT_EVAL_URL + 'getPhonemes';
             
             const textData = {
               text: contentSourceDataEle['text'],

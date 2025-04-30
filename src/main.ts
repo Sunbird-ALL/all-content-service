@@ -7,7 +7,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppClusterService } from './app-cluster.service';
-import compression from '@fastify/compress';
+
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(

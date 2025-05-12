@@ -105,3 +105,5 @@ export class collection {
 export type collectionDocument = collection & Document;
 
 export const collectionDbSchema = SchemaFactory.createForClass(collection);
+
+collectionDbSchema.index({ tags: 1, language: 1 });

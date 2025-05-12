@@ -229,6 +229,7 @@ export class contentController {
                   headers: {
                     'Content-Type': 'application/json',
                   },
+                  timeout: 10000, // Increase timeout to 10 seconds
                 })
                 .pipe(map((resp) => resp.data)),
             );

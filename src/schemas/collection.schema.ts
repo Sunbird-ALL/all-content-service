@@ -14,34 +14,6 @@ export class collection {
 
   @Prop({ type: String, required: false })
   @IsOptional()
-  synopsis: string;
-
-  @Prop({ type: String, required: false })
-  @IsOptional()
-  type_of_learner: string;
-
-  @Prop({ type: Number, required: false })
-  @IsOptional()
-  reading_level: number;
-
-  @Prop({ required: false })
-  @IsOptional()
-  categories: [string];
-
-  @Prop({ required: false })
-  @IsOptional()
-  content_tags: [string];
-
-  @Prop({ type: Number, required: false })
-  @IsOptional()
-  paragraphCount: number;
-
-  @Prop({ type: String, required: false })
-  @IsOptional()
-  title: string;
-
-  @Prop({ type: String, required: false })
-  @IsOptional()
   @IsString()
   description: string;
 

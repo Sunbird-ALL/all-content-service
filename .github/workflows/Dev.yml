@@ -2,8 +2,7 @@ name: DEV DEPLOYMENT
 
 on:
   push:
-    branches: [ release-2.0-tn-dev ]
-
+    branches: [ test ]
 jobs:
   build:
     runs-on: ubuntu-latest

@@ -77,31 +77,6 @@ export class contentService {
     };
   }
 
-  async getStoryContent(contentType: any, collectionId: any) {
-    const data = await this.content.aggregate([
-      {
-        $match: {
-          collectionId: collectionId
-        }
-      },
-      {
-        $project: {
-          _id: 1,
-          contentType: 1,
-          contentId: 1,
-          language: 1,
-          "contentSourceData.text": 1,
-          "contentSourceData.phonemes": 1,
-          "contentSourceData.syllableCount": 1,
-        }
-      }
-    ]).exec();
-    return {
-      data: data,
-      status: 200,
-    };
-  }
-
   async getRandomContent(limit = 5, type = 'Word', language = 'ta') {
     const data = await this.content.aggregate([
       {
@@ -811,7 +786,6 @@ export class contentService {
 
       // remove all criteria and get random content with content type
       if (contentData.length <= limit) {
-
         let randomContentQuery = {
           contentSourceData: {
             $elemMatch: {
@@ -858,7 +832,7 @@ export class contentService {
             }
           }
         });
-      }
+        }
 
 
       for (let contentDataEle of contentData) {
@@ -1093,6 +1067,10 @@ export class contentService {
         query["tags"] = { $all: tags };
       }
 
+      if (level_competency?.length > 0) {
+        query["level_complexity.level_competency"] = {$in:level_competency};
+      }
+
       const allTokenGraphemes = [];
 
       let contentData = [];
@@ -1281,6 +1259,150 @@ export class contentService {
               }
             }
           });
+      }
+
+      // remove all criteria and get random content with level conpetency
+      if (contentData.length <= limit && level_competency?.length > 0) {
+        let randomContentQuery = {
+            contentSourceData: {
+              $elemMatch: {
+              },
+            },
+          contentType: contentType,
+          "level_complexity.level_competency": {$in:level_competency}
+        };
+        
+        randomContentQuery.contentSourceData.$elemMatch['language'] = en_config.language_code;
+        
+        await this.content
+        .aggregate([
+                {
+                  $addFields: {
+                    contentSourceData: {
+                      $map: {
+                        input: '$contentSourceData',
+                        as: 'elem',
+                        in: {
+                          $mergeObjects: [
+                            '$$elem',
+                            {
+                              syllableCountArray: {
+                                $objectToArray: '$$elem.syllableCountMap',
+                              },
+                            },
+                          ],
+                        },
+                      },
+                    },
+                  },
+                },
+                {
+                  $match: randomContentQuery,
+                },
+                { $sample: { size: limit - contentData.length } },
+        ])
+        .exec()
+        .then((doc) => {
+                for (const docEle of doc) {
+                  if (contentData.length == 0 || !contentDataSet.has(docEle.contentId)) {
+                    contentDataSet.add(docEle.contentId);
+                    contentData.push(docEle);
+                  }
+                }
+        });
+      }
+
+      if (contentData.length <= limit) {
+        if (level_competency?.length > 0) {
+          query["level_complexity.level_competency"] = { $exists: true }
+        }
+
+        await this.content
+          .aggregate([
+            {
+              $addFields: {
+                contentSourceData: {
+                  $map: {
+                    input: '$contentSourceData',
+                    as: 'elem',
+                    in: {
+                      $mergeObjects: [
+                        '$$elem',
+                        {
+                          syllableCountArray: {
+                            $objectToArray: '$$elem.syllableCountMap',
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              $match: query,
+            },
+            { $sample: { size: limit - contentData.length } },
+          ])
+          .exec()
+          .then((doc) => {
+            for (const docEle of doc) {
+              if (contentData.length == 0 || !contentDataSet.has(docEle.contentId)) {
+                contentDataSet.add(docEle.contentId);
+                contentData.push(docEle);
+              }
+            }
+          });
+      }
+
+      // remove all criteria and get random content with content type
+      if (contentData.length <= limit) {
+      let randomContentQuery = {
+        contentSourceData: {
+          $elemMatch: {
+          },
+        },
+        contentType: contentType
+      };
+
+      randomContentQuery.contentSourceData.$elemMatch['language'] = en_config.language_code;
+
+      await this.content
+      .aggregate([
+        {
+          $addFields: {
+            contentSourceData: {
+              $map: {
+                input: '$contentSourceData',
+                as: 'elem',
+                in: {
+                  $mergeObjects: [
+                    '$$elem',
+                    {
+                      syllableCountArray: {
+                        $objectToArray: '$$elem.syllableCountMap',
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          $match: randomContentQuery,
+        },
+        { $sample: { size: limit - contentData.length } },
+      ])
+      .exec()
+      .then((doc) => {
+        for (const docEle of doc) {
+          if (contentData.length == 0 || !contentDataSet.has(docEle.contentId)) {
+            contentDataSet.add(docEle.contentId);
+            contentData.push(docEle);
+          }
+        }
+      });
       }
 
       // Remove content level

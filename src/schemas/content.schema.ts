@@ -127,3 +127,8 @@ export class content {
 export type contentDocument = content & Document;
 
 export const contentSchema = SchemaFactory.createForClass(content);
+
+contentSchema.index({
+  contentType: 1,
+  "contentSourceData.language": 1
+});

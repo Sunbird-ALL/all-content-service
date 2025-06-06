@@ -218,7 +218,7 @@ export class contentController {
               syllableCountMap: syllableCountMap,
             };
           } else if (contentSourceDataEle['language'] === 'en') {
-            const url = process.env.ALL_TEXT_EVAL_URL + 'getPhonemes';
+            const url = 'https://www.learnerai-dev.theall.ai/text-eval/' + 'getPhonemes';
             const textData = {
               text: contentSourceDataEle['text'],
             };

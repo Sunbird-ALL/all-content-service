@@ -8,7 +8,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppClusterService } from './app-cluster.service';
 
-
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -21,6 +20,11 @@ async function bootstrap() {
     origin: ['*'],
     methods: ['GET', 'POST', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: false,
+    exposedHeaders: [
+      'X-Content-Type-Options',
+      'X-Frame-Options',
+      'X-XSS-Protection',
+    ],
   });
 
   const config = new DocumentBuilder()
@@ -34,6 +38,16 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
+
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onSend', async (request, reply, payload) => {
+      reply.header('X-Content-Type-Options', 'nosniff');
+      reply.header('X-Frame-Options', 'DENY');
+      reply.header('Content-Security-Policy', "default-src 'self'");
+      return payload;
+    });
 
   await app.listen(3008, '0.0.0.0');
 }

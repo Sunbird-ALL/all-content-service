@@ -7,10 +7,10 @@ import { JwtAuthGuard } from './auth.guard';
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env.JOSE_SECRET
+      secret: process.env.JOSE_SECRET,
     }),
   ],
-  providers: [JwtAuthGuard,JwtService],
+  providers: [JwtAuthGuard, JwtService],
   exports: [JwtAuthGuard, JwtService],
 })
 export class AuthModule {}

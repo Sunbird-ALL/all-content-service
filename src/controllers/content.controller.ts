@@ -37,14 +37,17 @@ export class contentController {
     private readonly contentService: contentService,
     private readonly collectionService: CollectionService,
     private readonly httpService: HttpService,
-  ) { }
+  ) {}
 
   @ApiBody({
     description: 'Request body for storing the data into the content',
     schema: {
       type: 'object',
       properties: {
-        collectionId: { type: 'string', example: '3f0192af-0720-4248-b4d4-d99a9f731d4f' },
+        collectionId: {
+          type: 'string',
+          example: '3f0192af-0720-4248-b4d4-d99a9f731d4f',
+        },
         name: { type: 'string', example: 'tn gr2 eng t1 ch2d' },
         contentType: { type: 'string', example: 'Sentence' },
         contentSourceData: {
@@ -54,7 +57,10 @@ export class contentController {
             properties: {
               language: { type: 'string', example: 'en' },
               audioUrl: { type: 'string', example: '' },
-              text: { type: 'string', example: 'Blue bird, blue bird, what do you see?' },
+              text: {
+                type: 'string',
+                example: 'Blue bird, blue bird, what do you see?',
+              },
             },
           },
         },
@@ -77,7 +83,10 @@ export class contentController {
         data: {
           type: 'object',
           properties: {
-            collectionId: { type: 'string', example: '3f0192af-0720-4248-b4d4-d99a9f731d4f' },
+            collectionId: {
+              type: 'string',
+              example: '3f0192af-0720-4248-b4d4-d99a9f731d4f',
+            },
             name: { type: 'string', example: 'tn gr2 eng t1 ch2d' },
             contentType: { type: 'string', example: 'Sentence' },
             imagePath: { type: 'string', example: 'image_2.jpg' },
@@ -88,8 +97,42 @@ export class contentController {
                 properties: {
                   language: { type: 'string', example: 'en' },
                   audioUrl: { type: 'string', example: '' },
-                  text: { type: 'string', example: 'Blue bird, blue bird, what do you see?' },
-                  phonemes: { type: 'array', items: { type: 'string' }, example: ['b', 'l', 'u', 'b', 'ə', 'r', 'd', ',', 'b', 'l', 'u', 'b', 'ə', 'r', 'd', ',', 'w', 'ə', 't', 'd', 'u', 'j', 'u', 's', 'i', '?'] },
+                  text: {
+                    type: 'string',
+                    example: 'Blue bird, blue bird, what do you see?',
+                  },
+                  phonemes: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    example: [
+                      'b',
+                      'l',
+                      'u',
+                      'b',
+                      'ə',
+                      'r',
+                      'd',
+                      ',',
+                      'b',
+                      'l',
+                      'u',
+                      'b',
+                      'ə',
+                      'r',
+                      'd',
+                      ',',
+                      'w',
+                      'ə',
+                      't',
+                      'd',
+                      'u',
+                      'j',
+                      'u',
+                      's',
+                      'i',
+                      '?',
+                    ],
+                  },
                   wordCount: { type: 'number', example: 8 },
                   wordFrequency: {
                     type: 'object',
@@ -99,8 +142,8 @@ export class contentController {
                       what: 1,
                       do: 1,
                       you: 1,
-                      see: 1
-                    }
+                      see: 1,
+                    },
                   },
                   syllableCount: { type: 'number', example: 28 },
                   syllableCountMap: {
@@ -111,11 +154,11 @@ export class contentController {
                       what: 4,
                       do: 2,
                       you: 3,
-                      see: 3
-                    }
-                  }
-                }
-              }
+                      see: 3,
+                    },
+                  },
+                },
+              },
             },
             status: { type: 'string', example: 'live' },
             publisher: { type: 'string', example: 'ekstep' },
@@ -125,12 +168,15 @@ export class contentController {
             createdAt: { type: 'string', example: '2024-06-07T09:48:00.040Z' },
             updatedAt: { type: 'string', example: '2024-06-07T09:48:00.040Z' },
             _id: { type: 'string', example: '6662d7ff059b133df04db6e3' },
-            contentId: { type: 'string', example: 'fa853c29-bf19-417a-9661-c67d2671ebc1' },
-            __v: { type: 'number', example: 0 }
-          }
-        }
-      }
-    }
+            contentId: {
+              type: 'string',
+              example: 'fa853c29-bf19-417a-9661-c67d2671ebc1',
+            },
+            __v: { type: 'number', example: 0 },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 500,
@@ -145,8 +191,7 @@ export class contentController {
   })
   @ApiForbiddenResponse({ description: 'Forbidden.' })
   @ApiOperation({
-    summary:
-      'Store the data into to the content table',
+    summary: 'Store the data into to the content table',
   })
   @Post()
   async create(@Res() response: FastifyReply, @Body() content: any) {
@@ -380,13 +425,18 @@ export class contentController {
         type: { type: 'string', description: 'content type', example: 'word' },
         page: { type: 'number', description: 'Page number', example: 1 },
         limit: { type: 'number', description: 'Items per page', example: 10 },
-        collectionId: { type: 'string', description: 'ID of the collection', example: '3f0192af-0720-4248-b4d4-d99a9f731d4f' }
-      }
-    }
+        collectionId: {
+          type: 'string',
+          description: 'ID of the collection',
+          example: '3f0192af-0720-4248-b4d4-d99a9f731d4f',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
-    description: 'The content is search by using the collection id limit and page criteria',
+    description:
+      'The content is search by using the collection id limit and page criteria',
     schema: {
       type: 'object',
       properties: {
@@ -403,23 +453,32 @@ export class contentController {
                 items: {
                   type: 'object',
                   properties: {
-                    text: { type: 'string', example: 'Blue bird, blue bird, what do you see?' },
+                    text: {
+                      type: 'string',
+                      example: 'Blue bird, blue bird, what do you see?',
+                    },
                     phonemes: {
                       type: 'array',
-                      items: { type: 'string', example: ['b', 'l', 'u', 'b', 'ə', 'r'] }
+                      items: {
+                        type: 'string',
+                        example: ['b', 'l', 'u', 'b', 'ə', 'r'],
+                      },
                     },
-                    syllableCount: { type: 'number', example: 28 }
-                  }
-                }
+                    syllableCount: { type: 'number', example: 28 },
+                  },
+                },
               },
               language: { type: 'string', example: 'en' },
-              contentId: { type: 'string', example: 'fa853c29-bf19-417a-9661-c67d2671ebc1' }
-            }
-          }
+              contentId: {
+                type: 'string',
+                example: 'fa853c29-bf19-417a-9661-c67d2671ebc1',
+              },
+            },
+          },
         },
-        totalSyllableCount: { type: 'number', example: 26 }
-      }
-    }
+        totalSyllableCount: { type: 'number', example: 26 },
+      },
+    },
   })
   @ApiResponse({
     status: 500,
@@ -493,9 +552,9 @@ export class contentController {
       properties: {
         type: { type: 'string', description: 'content type', example: 'word' },
         language: { type: 'number', description: 'Page number', example: 1 },
-        limit: { type: 'number', description: 'Items per page', example: 10 }
-      }
-    }
+        limit: { type: 'number', description: 'Items per page', example: 10 },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -510,7 +569,10 @@ export class contentController {
             type: 'object',
             properties: {
               _id: { type: 'string', example: '6662d7ff059b133df04db6e3' },
-              collectionId: { type: 'string', example: '3f0192af-0720-4248-b4d4-d99a9f731d4f' },
+              collectionId: {
+                type: 'string',
+                example: '3f0192af-0720-4248-b4d4-d99a9f731d4f',
+              },
               name: { type: 'string', example: 'tn gr2 eng t1 ch2d' },
               contentType: { type: 'string', example: 'Sentence' },
               imagePath: { type: 'string', example: 'image_2.jpg' },
@@ -521,10 +583,43 @@ export class contentController {
                   properties: {
                     language: { type: 'string', example: 'en' },
                     audioUrl: { type: 'string', example: '' },
-                    text: { type: 'string', example: 'Blue bird, blue bird, what do you see?' },
+                    text: {
+                      type: 'string',
+                      example: 'Blue bird, blue bird, what do you see?',
+                    },
                     phonemes: {
                       type: 'array',
-                      items: { type: 'string', example: ['b', 'l', 'u', 'b', 'ə', 'r', 'd', ',', 'b', 'l', 'u', 'b', 'ə', 'r', 'd', ',', 'w', 'ə', 't', 'd', 'u', 'j', 'u', 's', 'i', '?'] }
+                      items: {
+                        type: 'string',
+                        example: [
+                          'b',
+                          'l',
+                          'u',
+                          'b',
+                          'ə',
+                          'r',
+                          'd',
+                          ',',
+                          'b',
+                          'l',
+                          'u',
+                          'b',
+                          'ə',
+                          'r',
+                          'd',
+                          ',',
+                          'w',
+                          'ə',
+                          't',
+                          'd',
+                          'u',
+                          'j',
+                          'u',
+                          's',
+                          'i',
+                          '?',
+                        ],
+                      },
                     },
                     wordCount: { type: 'number', example: 8 },
                     wordFrequency: {
@@ -535,8 +630,8 @@ export class contentController {
                         what: 1,
                         do: 1,
                         you: 1,
-                        see: 1
-                      }
+                        see: 1,
+                      },
                     },
                     syllableCount: { type: 'number', example: 28 },
                     syllableCountMap: {
@@ -547,26 +642,35 @@ export class contentController {
                         what: 4,
                         do: 2,
                         you: 3,
-                        see: 3
-                      }
-                    }
-                  }
-                }
+                        see: 3,
+                      },
+                    },
+                  },
+                },
               },
               status: { type: 'string', example: 'live' },
               publisher: { type: 'string', example: 'ekstep' },
               language: { type: 'string', example: 'en' },
               contentIndex: { type: 'number', example: 1 },
               tags: { type: 'array', items: { type: 'string' }, example: [] },
-              createdAt: { type: 'string', example: '2024-06-07T09:48:00.040Z' },
-              updatedAt: { type: 'string', example: '2024-06-07T09:48:00.040Z' },
-              contentId: { type: 'string', example: 'fa853c29-bf19-417a-9661-c67d2671ebc1' },
-              __v: { type: 'number', example: 0 }
-            }
-          }
-        }
-      }
-    }
+              createdAt: {
+                type: 'string',
+                example: '2024-06-07T09:48:00.040Z',
+              },
+              updatedAt: {
+                type: 'string',
+                example: '2024-06-07T09:48:00.040Z',
+              },
+              contentId: {
+                type: 'string',
+                example: 'fa853c29-bf19-417a-9661-c67d2671ebc1',
+              },
+              __v: { type: 'number', example: 0 },
+            },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 500,
@@ -679,36 +783,36 @@ export class contentController {
           description: 'Array of tokens',
           items: {
             type: 'string',
-            example: 'c'
-          }
+            example: 'c',
+          },
         },
         language: {
           type: 'string',
           description: 'Language code',
-          example: 'en'
+          example: 'en',
         },
         contentType: {
           type: 'string',
           description: 'Type of content',
-          example: 'Word'
+          example: 'Word',
         },
         limit: {
           type: 'number',
           description: 'Limit on the number of items',
-          example: 5
+          example: 5,
         },
         cLevel: {
           type: 'string',
           description: 'Content level',
-          example: 'L2'
+          example: 'L2',
         },
         complexityLevel: {
           type: 'array',
           description: 'Array of complexity levels',
           items: {
             type: 'string',
-            example: 'C1'
-          }
+            example: 'C1',
+          },
         },
         graphemesMappedObj: {
           type: 'object',
@@ -717,23 +821,23 @@ export class contentController {
             type: 'array',
             items: {
               type: 'string',
-              example: 'ch'
-            }
+              example: 'ch',
+            },
           },
           example: {
-            "c": ["ch"],
-            "o": ["o"],
-            "a": ["a"],
-            "v": ["v", "ve"],
-            "w": ["w", "wh"],
-            "æ": ["a", "ai", "au"],
-            "n": ["n"],
-            "i": ["i"],
-            "θ": ["th"]
-          }
-        }
-      }
-    }
+            c: ['ch'],
+            o: ['o'],
+            a: ['a'],
+            v: ['v', 've'],
+            w: ['w', 'wh'],
+            æ: ['a', 'ai', 'au'],
+            n: ['n'],
+            i: ['i'],
+            θ: ['th'],
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -751,8 +855,14 @@ export class contentController {
                 type: 'object',
                 properties: {
                   _id: { type: 'string', example: '660f9545367a62b3902dd58b' },
-                  contentId: { type: 'string', example: 'f8dd7c97-53f7-4676-b597-4a52aaface5c' },
-                  collectionId: { type: 'string', example: '6a519951-8635-4d89-821a-d3eb60f6e1ec' },
+                  contentId: {
+                    type: 'string',
+                    example: 'f8dd7c97-53f7-4676-b597-4a52aaface5c',
+                  },
+                  collectionId: {
+                    type: 'string',
+                    example: '6a519951-8635-4d89-821a-d3eb60f6e1ec',
+                  },
                   name: { type: 'string', example: 'L2_new_3' },
                   contentType: { type: 'string', example: 'Word' },
                   contentSourceData: {
@@ -765,17 +875,17 @@ export class contentController {
                         text: { type: 'string', example: 'five' },
                         phonemes: {
                           type: 'array',
-                          items: { type: 'string', example: 'f' }
+                          items: { type: 'string', example: 'f' },
                         },
                         wordCount: { type: 'number', example: 1 },
                         wordFrequency: {
                           type: 'object',
-                          additionalProperties: { type: 'number', example: 1 }
+                          additionalProperties: { type: 'number', example: 1 },
                         },
                         syllableCount: { type: 'number', example: 4 },
                         syllableCountMap: {
                           type: 'object',
-                          additionalProperties: { type: 'number', example: 4 }
+                          additionalProperties: { type: 'number', example: 4 },
                         },
                         syllableCountArray: {
                           type: 'array',
@@ -783,12 +893,12 @@ export class contentController {
                             type: 'object',
                             properties: {
                               k: { type: 'string', example: 'five' },
-                              v: { type: 'number', example: 4 }
-                            }
-                          }
-                        }
-                      }
-                    }
+                              v: { type: 'number', example: 4 },
+                            },
+                          },
+                        },
+                      },
+                    },
                   },
                   status: { type: 'string', example: 'live' },
                   publisher: { type: 'string', example: 'ekstep' },
@@ -796,17 +906,23 @@ export class contentController {
                   contentIndex: { type: 'number', example: 141 },
                   tags: {
                     type: 'array',
-                    items: { type: 'string' }
+                    items: { type: 'string' },
                   },
-                  createdAt: { type: 'string', example: '2024-04-05T05:45:55.335Z' },
-                  updatedAt: { type: 'string', example: '2024-04-05T05:45:55.335Z' },
+                  createdAt: {
+                    type: 'string',
+                    example: '2024-04-05T05:45:55.335Z',
+                  },
+                  updatedAt: {
+                    type: 'string',
+                    example: '2024-04-05T05:45:55.335Z',
+                  },
                   __v: { type: 'number', example: 0 },
                   matchedChar: {
                     type: 'array',
-                    items: { type: 'string', example: 'v' }
-                  }
-                }
-              }
+                    items: { type: 'string', example: 'v' },
+                  },
+                },
+              },
             },
             contentForToken: {
               type: 'object',
@@ -815,9 +931,18 @@ export class contentController {
                 items: {
                   type: 'object',
                   properties: {
-                    _id: { type: 'string', example: '660f9545367a62b3902dd58b' },
-                    contentId: { type: 'string', example: 'f8dd7c97-53f7-4676-b597-4a52aaface5c' },
-                    collectionId: { type: 'string', example: '6a519951-8635-4d89-821a-d3eb60f6e1ec' },
+                    _id: {
+                      type: 'string',
+                      example: '660f9545367a62b3902dd58b',
+                    },
+                    contentId: {
+                      type: 'string',
+                      example: 'f8dd7c97-53f7-4676-b597-4a52aaface5c',
+                    },
+                    collectionId: {
+                      type: 'string',
+                      example: '6a519951-8635-4d89-821a-d3eb60f6e1ec',
+                    },
                     name: { type: 'string', example: 'L2_new_3' },
                     contentType: { type: 'string', example: 'Word' },
                     contentSourceData: {
@@ -830,17 +955,23 @@ export class contentController {
                           text: { type: 'string', example: 'five' },
                           phonemes: {
                             type: 'array',
-                            items: { type: 'string', example: 'f' }
+                            items: { type: 'string', example: 'f' },
                           },
                           wordCount: { type: 'number', example: 1 },
                           wordFrequency: {
                             type: 'object',
-                            additionalProperties: { type: 'number', example: 1 }
+                            additionalProperties: {
+                              type: 'number',
+                              example: 1,
+                            },
                           },
                           syllableCount: { type: 'number', example: 4 },
                           syllableCountMap: {
                             type: 'object',
-                            additionalProperties: { type: 'number', example: 4 }
+                            additionalProperties: {
+                              type: 'number',
+                              example: 4,
+                            },
                           },
                           syllableCountArray: {
                             type: 'array',
@@ -848,12 +979,12 @@ export class contentController {
                               type: 'object',
                               properties: {
                                 k: { type: 'string', example: 'five' },
-                                v: { type: 'number', example: 4 }
-                              }
-                            }
-                          }
-                        }
-                      }
+                                v: { type: 'number', example: 4 },
+                              },
+                            },
+                          },
+                        },
+                      },
                     },
                     status: { type: 'string', example: 'live' },
                     publisher: { type: 'string', example: 'ekstep' },
@@ -861,23 +992,29 @@ export class contentController {
                     contentIndex: { type: 'number', example: 141 },
                     tags: {
                       type: 'array',
-                      items: { type: 'string' }
+                      items: { type: 'string' },
                     },
-                    createdAt: { type: 'string', example: '2024-04-05T05:45:55.335Z' },
-                    updatedAt: { type: 'string', example: '2024-04-05T05:45:55.335Z' },
+                    createdAt: {
+                      type: 'string',
+                      example: '2024-04-05T05:45:55.335Z',
+                    },
+                    updatedAt: {
+                      type: 'string',
+                      example: '2024-04-05T05:45:55.335Z',
+                    },
                     __v: { type: 'number', example: 0 },
                     matchedChar: {
                       type: 'array',
-                      items: { type: 'string', example: 'v' }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                      items: { type: 'string', example: 'v' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 500,
@@ -891,7 +1028,7 @@ export class contentController {
     },
   })
   @ApiOperation({
-    summary: 'Get all data from the content table'
+    summary: 'Get all data from the content table',
   })
   @Post('/getContent')
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
@@ -901,44 +1038,58 @@ export class contentController {
       let contentCollection;
       let collectionId;
 
-      if(queryData.story_mode === "true" && queryData.level_competency.length > 0) { 
-        collectionId = await this.collectionService.getCompetencyCollections(queryData.level_competency, queryData.language, queryData.contentType);
-        const contentData = await this.contentService.pagination(0, parseInt(Batch),queryData.contentType,collectionId);
+      if (
+        queryData.story_mode === 'true' &&
+        queryData.level_competency.length > 0
+      ) {
+        collectionId = await this.collectionService.getCompetencyCollections(
+          queryData.level_competency,
+          queryData.language,
+          queryData.contentType,
+        );
+        const contentData = await this.contentService.pagination(
+          0,
+          parseInt(Batch),
+          queryData.contentType,
+          collectionId,
+        );
         let contentArr = contentData['data'];
 
-        if(contentArr.length === 0){
-          
-          await this.contentService.search(
-            queryData.tokenArr,
-            queryData.language,
-            queryData.contentType,
-            parseInt(Batch),
-            queryData.tags,
-            queryData.cLevel,
-            queryData.complexityLevel,
-            queryData.graphemesMappedObj,
-            queryData.level_competency
-          ).then((contentData)=>{
-            contentArr = contentData['wordsArr'];
+        if (contentArr.length === 0) {
+          await this.contentService
+            .search(
+              queryData.tokenArr,
+              queryData.language,
+              queryData.contentType,
+              parseInt(Batch),
+              queryData.tags,
+              queryData.cLevel,
+              queryData.complexityLevel,
+              queryData.graphemesMappedObj,
+              queryData.level_competency,
+            )
+            .then((contentData) => {
+              contentArr = contentData['wordsArr'];
+            });
+        }
+
+        if (queryData.mechanics_id !== undefined) {
+          contentArr.map((content) => {
+            const { mechanics_data } = content;
+            if (mechanics_data) {
+              const mechanicData = mechanics_data.find((mechanic) => {
+                return mechanic.mechanics_id === queryData.mechanics_id;
+              });
+              content.mechanics_data = [];
+              content.mechanics_data.push(mechanicData);
+            }
           });
         }
 
-        if(queryData.mechanics_id !== undefined){
-          contentArr.map((content) => {
-            const { mechanics_data } = content;
-            if(mechanics_data){
-            const mechanicData = mechanics_data.find(
-              (mechanic) => {return mechanic.mechanics_id === queryData.mechanics_id}
-            );
-            content.mechanics_data = [];
-            content.mechanics_data.push(mechanicData);
-          }});
-        }
-        
-        contentCollection ={ wordsArr:contentArr};
+        contentCollection = { wordsArr: contentArr };
       }
 
-      if(queryData.mechanics_id === undefined && collectionId === undefined){
+      if (queryData.mechanics_id === undefined && collectionId === undefined) {
         contentCollection = await this.contentService.search(
           queryData.tokenArr,
           queryData.language,
@@ -948,9 +1099,8 @@ export class contentController {
           queryData.cLevel,
           queryData.complexityLevel,
           queryData.graphemesMappedObj,
-          queryData.level_competency
+          queryData.level_competency,
         );
-
       } else {
         contentCollection = await this.contentService.getMechanicsContentData(
           queryData.contentType,
@@ -958,7 +1108,7 @@ export class contentController {
           parseInt(Batch),
           queryData.language,
           queryData.level_competency,
-          queryData.tags
+          queryData.tags,
         );
       }
 
@@ -977,24 +1127,39 @@ export class contentController {
 
   @ApiExcludeEndpoint(true)
   @Post('/getContentByFilters')
-  async getContentByFilters(@Res() response: FastifyReply, @Body() queryData: any) {
+  async getContentByFilters(
+    @Res() response: FastifyReply,
+    @Body() queryData: any,
+  ) {
     try {
       let Batch: any = queryData.limit || 5;
 
-      const contentCollection = await this.contentService.searchByFilter(queryData?.syllableList, queryData?.syllableCount, queryData?.wordCount, queryData?.totalOrthoComplexity, queryData?.totalPhonicComplexity, queryData?.meanPhonicComplexity, queryData.language, queryData.contentType, parseInt(Batch), queryData?.contentId, queryData?.collectionId, queryData?.tags);
+      const contentCollection = await this.contentService.searchByFilter(
+        queryData?.syllableList,
+        queryData?.syllableCount,
+        queryData?.wordCount,
+        queryData?.totalOrthoComplexity,
+        queryData?.totalPhonicComplexity,
+        queryData?.meanPhonicComplexity,
+        queryData.language,
+        queryData.contentType,
+        parseInt(Batch),
+        queryData?.contentId,
+        queryData?.collectionId,
+        queryData?.tags,
+      );
       return response.status(HttpStatus.CREATED).send({
-        status: "success",
+        status: 'success',
         data: contentCollection,
       });
     } catch (error) {
       console.log(error);
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-        status: "error",
-        message: "Server error - " + error
+        status: 'error',
+        message: 'Server error - ' + error,
       });
     }
   }
-
 
   @ApiBody({
     description: 'Request body parameters',
@@ -1007,16 +1172,16 @@ export class contentController {
           description: 'Array of tags',
           items: {
             type: 'string',
-            example: 'ASER'
-          }
+            example: 'ASER',
+          },
         },
         language: {
           type: 'string',
           description: 'Language code',
-          example: 'ta'
-        }
-      }
-    }
+          example: 'ta',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -1032,13 +1197,16 @@ export class contentController {
               _id: { type: 'string', example: '65e88b6cdee499a6209e739e' },
               name: { type: 'string', example: '(மாதிறி -4)எழுத்து' },
               category: { type: 'string', example: 'Char' },
-              collectionId: { type: 'string', example: 'ed47eb63-87c8-41f4-821d-1400fef37b78' }
-            }
-          }
+              collectionId: {
+                type: 'string',
+                example: 'ed47eb63-87c8-41f4-821d-1400fef37b78',
+              },
+            },
+          },
         },
-        status: { type: 'number', example: 200 }
-      }
-    }
+        status: { type: 'number', example: 200 },
+      },
+    },
   })
   @ApiResponse({
     status: 500,
@@ -1052,37 +1220,43 @@ export class contentController {
     },
   })
   @ApiOperation({
-    summary: 'Get Assessments data'
+    summary: 'Get Assessments data',
   })
   @Post('/getAssessment')
   async getAssessment(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
       let contentCollection;
 
-      if (queryData.tags.includes("ASER")) {
+      if (queryData.tags.includes('ASER')) {
         let collectionArr = [];
         for (let setno = 1; setno <= 5; setno++) {
           let tags = [];
           tags.push(...queryData.tags);
-          tags.push("set" + setno);
-          let collection = await this.collectionService.getAssessment(tags, queryData.language);
+          tags.push('set' + setno);
+          let collection = await this.collectionService.getAssessment(
+            tags,
+            queryData.language,
+          );
           if (collection.data[0] != null) {
             collectionArr.push(collection.data[0]);
           }
         }
         contentCollection = {
           data: collectionArr,
-          status: 200
+          status: 200,
         };
       } else {
-        contentCollection = await this.collectionService.getAssessment(queryData.tags, queryData.language);
+        contentCollection = await this.collectionService.getAssessment(
+          queryData.tags,
+          queryData.language,
+        );
       }
 
       return response.status(HttpStatus.CREATED).send(contentCollection);
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-        status: "error",
-        message: "Server error - " + error
+        status: 'error',
+        message: 'Server error - ' + error,
       });
     }
   }
@@ -1113,7 +1287,11 @@ export class contentController {
 
   @ApiExcludeEndpoint(true)
   @Get()
-  async fetchAll(@Res() response: FastifyReply, @Query('page') page: number = 1, @Query('limit') limit: number = 20) {
+  async fetchAll(
+    @Res() response: FastifyReply,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
     try {
       const limitCount = limit;
       const data = await this.contentService.readAll(page, limit);
@@ -1123,13 +1301,12 @@ export class contentController {
         status: 'success',
         recordCount: dataCount,
         pageCount: pageCount,
-        data
+        data,
       });
-
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-        status: "error",
-        message: "Server error - " + error
+        status: 'error',
+        message: 'Server error - ' + error,
       });
     }
   }

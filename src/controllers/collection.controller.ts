@@ -8,7 +8,7 @@ import {
   Post,
   Put,
   Res,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import { collection } from 'src/schemas/collection.schema';
 import { CollectionService } from 'src/services/collection.service';
@@ -28,9 +28,8 @@ import { JwtAuthGuard } from 'src/auth/auth.guard';
 @Controller('collection')
 @UseGuards(JwtAuthGuard)
 export class CollectionController {
-  constructor(private readonly CollectionService: CollectionService) { }
+  constructor(private readonly CollectionService: CollectionService) {}
 
-  
   @ApiBody({
     description: 'Request body for storing data to collection',
     schema: {
@@ -66,7 +65,10 @@ export class CollectionController {
             createdAt: { type: 'string', example: '2024-06-07T06:14:44.161Z' },
             updatedAt: { type: 'string', example: '2024-06-07T06:14:44.161Z' },
             _id: { type: 'string', example: '6662a5848946f51e15abb9fd' },
-            collectionId: { type: 'string', example: '7b762891-8337-46a6-8eb0-abfcdc5c7f35' },
+            collectionId: {
+              type: 'string',
+              example: '7b762891-8337-46a6-8eb0-abfcdc5c7f35',
+            },
             __v: { type: 'number', example: 0 },
           },
         },
@@ -105,7 +107,6 @@ export class CollectionController {
     }
   }
 
-
   @ApiResponse({
     status: 200,
     description: 'Successfully retrieved items',
@@ -126,9 +127,18 @@ export class CollectionController {
               language: { type: 'string', example: 'kn' },
               status: { type: 'string', example: 'live' },
               tags: { type: 'array', items: { type: 'string' }, example: [] },
-              createdAt: { type: 'string', example: '2024-06-04T11:07:02.300Z' },
-              updatedAt: { type: 'string', example: '2024-06-04T11:07:02.300Z' },
-              collectionId: { type: 'string', example: '58009c39-fd86-45a5-bc32-9638a8198521' },
+              createdAt: {
+                type: 'string',
+                example: '2024-06-04T11:07:02.300Z',
+              },
+              updatedAt: {
+                type: 'string',
+                example: '2024-06-04T11:07:02.300Z',
+              },
+              collectionId: {
+                type: 'string',
+                example: '58009c39-fd86-45a5-bc32-9638a8198521',
+              },
               __v: { type: 'number', example: 0 },
             },
           },
@@ -148,7 +158,7 @@ export class CollectionController {
     },
   })
   @ApiOperation({
-    summary: 'Get all data from the collection'
+    summary: 'Get all data from the collection',
   })
   @Get()
   async fatchAll(@Res() response: FastifyReply) {
@@ -162,7 +172,6 @@ export class CollectionController {
       });
     }
   }
-  
 
   @ApiParam({
     name: 'language',
@@ -170,7 +179,8 @@ export class CollectionController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Successfully retrieved the collection data for the selected language',
+    description:
+      'Successfully retrieved the collection data for the selected language',
     schema: {
       type: 'object',
       properties: {
@@ -188,9 +198,18 @@ export class CollectionController {
               language: { type: 'string', example: 'kn' },
               status: { type: 'string', example: 'live' },
               tags: { type: 'array', items: { type: 'string' }, example: [] },
-              createdAt: { type: 'string', example: '2024-06-04T11:07:02.300Z' },
-              updatedAt: { type: 'string', example: '2024-06-04T11:07:02.300Z' },
-              collectionId: { type: 'string', example: '58009c39-fd86-45a5-bc32-9638a8198521' },
+              createdAt: {
+                type: 'string',
+                example: '2024-06-04T11:07:02.300Z',
+              },
+              updatedAt: {
+                type: 'string',
+                example: '2024-06-04T11:07:02.300Z',
+              },
+              collectionId: {
+                type: 'string',
+                example: '58009c39-fd86-45a5-bc32-9638a8198521',
+              },
               __v: { type: 'number', example: 0 },
             },
           },
@@ -210,7 +229,7 @@ export class CollectionController {
     },
   })
   @ApiOperation({
-    summary: 'Get all data from the collection with the specific language'
+    summary: 'Get all data from the collection with the specific language',
   })
   @Get('/bylanguage/:language')
   async fatchByLanguage(
@@ -227,7 +246,6 @@ export class CollectionController {
       });
     }
   }
-
 
   @ApiParam({
     name: 'id',
@@ -249,10 +267,17 @@ export class CollectionController {
             author: { type: 'string', example: 'Ekstep' },
             language: { type: 'string', example: 'kn' },
             status: { type: 'string', example: 'live' },
-            tags: { type: 'array', items: { type: 'string' }, example: ['ASR'] },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['ASR'],
+            },
             createdAt: { type: 'string', example: '2024-06-07T06:14:44.161Z' },
             updatedAt: { type: 'string', example: '2024-06-07T06:14:44.161Z' },
-            collectionId: { type: 'string', example: '7b762891-8337-46a6-8eb0-abfcdc5c7f35' },
+            collectionId: {
+              type: 'string',
+              example: '7b762891-8337-46a6-8eb0-abfcdc5c7f35',
+            },
             __v: { type: 'number', example: 0 },
           },
         },
@@ -271,7 +296,7 @@ export class CollectionController {
     },
   })
   @ApiOperation({
-    summary: 'Get the collection data for collection id'
+    summary: 'Get the collection data for collection id',
   })
   @Get('/:id')
   async findById(@Res() response: FastifyReply, @Param('id') id) {
@@ -280,7 +305,6 @@ export class CollectionController {
       collection,
     });
   }
-
 
   @ApiParam({
     name: 'id',
@@ -297,10 +321,17 @@ export class CollectionController {
         author: { type: 'string', example: 'ASER' },
         language: { type: 'string', example: 'ta' },
         status: { type: 'string', example: 'live' },
-        tags: { type: 'array', items: { type: 'string' }, example: ['ASER', 'set1', 'm1'] },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['ASER', 'set1', 'm1'],
+        },
         createdAt: { type: 'string', example: '2023-12-18T10:53:49.787Z' },
         updatedAt: { type: 'string', example: '2023-12-18T10:53:49.788Z' },
-        collectionId: { type: 'string', example: '94312c93-5bb8-4144-8822-9a61ad1cd5a8' },
+        collectionId: {
+          type: 'string',
+          example: '94312c93-5bb8-4144-8822-9a61ad1cd5a8',
+        },
         __v: { type: 'number', example: 0 },
       },
     },
@@ -321,10 +352,17 @@ export class CollectionController {
             author: { type: 'string', example: 'Ekstep' },
             language: { type: 'string', example: 'kn' },
             status: { type: 'string', example: 'live' },
-            tags: { type: 'array', items: { type: 'string' }, example: ['ASR'] },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['ASR'],
+            },
             createdAt: { type: 'string', example: '2024-06-07T06:14:44.161Z' },
             updatedAt: { type: 'string', example: '2024-06-07T06:14:44.161Z' },
-            collectionId: { type: 'string', example: '7b762891-8337-46a6-8eb0-abfcdc5c7f35' },
+            collectionId: {
+              type: 'string',
+              example: '7b762891-8337-46a6-8eb0-abfcdc5c7f35',
+            },
             __v: { type: 'number', example: 0 },
           },
         },
@@ -343,7 +381,7 @@ export class CollectionController {
     },
   })
   @ApiOperation({
-    summary: 'update the collection data using collection id'
+    summary: 'update the collection data using collection id',
   })
   @Put('/:id')
   async update(
@@ -356,7 +394,6 @@ export class CollectionController {
       updated,
     });
   }
-
 
   @ApiParam({
     name: 'id',
@@ -378,10 +415,17 @@ export class CollectionController {
             author: { type: 'string', example: 'ASER' },
             language: { type: 'string', example: 'kn' },
             status: { type: 'string', example: 'live' },
-            tags: { type: 'array', items: { type: 'string' }, example: ['ASER', 'set1', 'm1'] },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['ASER', 'set1', 'm1'],
+            },
             createdAt: { type: 'string', example: '2023-12-18T10:53:49.787Z' },
             updatedAt: { type: 'string', example: '2023-12-18T10:53:49.788Z' },
-            collectionId: { type: 'string', example: '94312c93-5bb8-4144-8822-9a61ad1cd5a8' },
+            collectionId: {
+              type: 'string',
+              example: '94312c93-5bb8-4144-8822-9a61ad1cd5a8',
+            },
             __v: { type: 'number', example: 0 },
           },
         },
@@ -400,7 +444,7 @@ export class CollectionController {
     },
   })
   @ApiOperation({
-    summary: 'delete the collection data using collection id'
+    summary: 'delete the collection data using collection id',
   })
   @Delete('/:id')
   async delete(@Res() response: FastifyReply, @Param('id') id) {

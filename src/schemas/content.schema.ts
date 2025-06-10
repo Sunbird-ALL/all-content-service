@@ -1,14 +1,20 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, now, Mixed } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
-import { IsOptional, IsString, IsNumber, IsArray, IsObject} from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsArray,
+  IsObject,
+} from 'class-validator';
 
 @Schema({ collection: 'content' })
 export class content {
-  @Prop({ default: uuidv4, index:true })
+  @Prop({ default: uuidv4, index: true })
   contentId: string;
 
-  @Prop({ type: String, required: false, index:true})
+  @Prop({ type: String, required: false, index: true })
   @IsOptional()
   @IsString()
   collectionId: string;
@@ -18,7 +24,7 @@ export class content {
   @IsString()
   name: string;
 
-  @Prop({ type: String, required: true, index:true })
+  @Prop({ type: String, required: true, index: true })
   @IsString()
   contentType: string;
 
@@ -36,8 +42,8 @@ export class content {
   mechanics_data: [
     {
       mechanics_id: string;
-      language:string;
-      content_body?:string;
+      language: string;
+      content_body?: string;
       jumbled_text?: string;
       text?: string;
       audio_url?: string;
@@ -49,7 +55,7 @@ export class content {
           image_url: string;
           isAns: boolean;
           side: string;
-        }
+        },
       ];
       hints?: {
         text: string;
@@ -58,9 +64,9 @@ export class content {
       };
       time_limit?: number;
       correctness?: {
-        "50%": [string],
-      }
-    }
+        '50%': [string];
+      };
+    },
   ];
 
   @Prop({ type: Object, required: false })
@@ -105,7 +111,7 @@ export class content {
   @IsString()
   publisher: string;
 
-  @Prop({ type: String, required: true, index:true })
+  @Prop({ type: String, required: true, index: true })
   @IsString()
   language: string;
 
@@ -117,7 +123,7 @@ export class content {
   @Prop({ required: true })
   tags: [string];
 
-  @Prop({ default: now(), index:true })
+  @Prop({ default: now(), index: true })
   createdAt: Date;
 
   @Prop({ default: now() })
@@ -130,5 +136,5 @@ export const contentSchema = SchemaFactory.createForClass(content);
 
 contentSchema.index({
   contentType: 1,
-  "contentSourceData.language": 1
+  'contentSourceData.language': 1,
 });

@@ -11,6 +11,7 @@ import { CollectionController } from './controllers/collection.controller';
 import { CollectionService } from './services/collection.service';
 import { HttpModule } from '@nestjs/axios';
 import { AuthModule } from './auth/auth.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AuthModule } from './auth/auth.module';
       { name: collection.name, schema: collectionDbSchema },
     ]),
     AuthModule,
+    RedisModule,
   ],
   controllers: [AppController, contentController, CollectionController],
   providers: [AppService, contentService, CollectionService],

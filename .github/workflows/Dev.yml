@@ -2,7 +2,7 @@ name: DEV DEPLOYMENT
 
 on:
   push:
-    branches: [ test ]
+    branches: [ lais-1.0 ]
 jobs:
   build:
     runs-on: ubuntu-latest

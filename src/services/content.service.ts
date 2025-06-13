@@ -5,6 +5,7 @@ import { content, contentDocument } from '../schemas/content.schema';
 import { HttpService } from '@nestjs/axios';
 import en_config from 'src/config/language/en';
 import common_config from 'src/config/commonConfig';
+import common_configs from 'src/config/newComplexityConfig';
 
 @Injectable()
 export class contentService {
@@ -334,6 +335,7 @@ export class contentService {
     level_competency = [],
   ): Promise<any> {
     let nextTokenArr = [];
+    let newComplexityLang =['hi'];
     if (tokenArr.length >= limit * 2) {
       nextTokenArr = tokenArr.slice(limit, limit * 2);
     } else {
@@ -347,8 +349,9 @@ export class contentService {
       let prevContentLevel = '';
       let contentQueryParam = [];
       let complexityQueryParam = [];
-      let contentLevel = common_config.contentLevel;
-      let complexity = common_config.complexity;
+      const configs = newComplexityLang.includes(language) ? common_configs : common_config;
+      let contentLevel = configs.contentLevel;
+      let complexity = configs.complexity;
 
       if (cLevel != '' || complexityLevel.length != 0) {
         if (cLevel != 'L1') {
@@ -388,13 +391,22 @@ export class contentService {
           delete complexityQueryParamEle.level;
           delete complexityQueryParamEle.contentType;
           delete complexityQueryParamEle.language;
-          mileStoneQuery.push({
-            totalPhonicComplexity:
-              complexityQueryParamEle.totalPhonicComplexity,
-          });
-          mileStoneQuery.push({
-            totalOrthoComplexity: complexityQueryParamEle.totalOrthoComplexity,
-          });
+          if(newComplexityLang.includes(language)) {
+            mileStoneQuery.push({
+              readingComplexity:
+                complexityQueryParamEle.readingComplexity,
+            });
+
+          }
+          else {
+            mileStoneQuery.push({
+              totalPhonicComplexity:
+                complexityQueryParamEle.totalPhonicComplexity,
+            });
+            mileStoneQuery.push({
+              totalOrthoComplexity: complexityQueryParamEle.totalOrthoComplexity,
+            });
+          }
         }
       }
 

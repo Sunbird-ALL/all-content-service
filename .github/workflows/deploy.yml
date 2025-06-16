@@ -1,9 +1,6 @@
 name: Deploy or Rollback All-Content-Service
 
 on:
-  push:
-    tags:
-      - 'deploy-tn-staging-*'
   workflow_dispatch:
     inputs:
       action:
@@ -23,7 +20,8 @@ on:
           - tn-staging
       branch:
         description: 'Branch to deploy (only for "deploy" action)'
-        required: false
+        required: true
+        default: 'lais-v2.0'
       rollback_tag:
         description: 'Tag to rollback to (only for "rollback" action, e.g., deploy-tn-staging-v1.0.0)'
         required: false
@@ -32,36 +30,29 @@ jobs:
   deploy-or-rollback:
     runs-on: ubuntu-latest
     environment: tn-staging
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     steps:
-    - name: Determine environment and action
-      id: vars
-      run: |
-        ENVIRONMENT=""
-        ACTION=""
-        if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/* ]]; then
-          TAG_PREFIX="${GITHUB_REF#refs/tags/deploy-}"
-          if [[ "$TAG_PREFIX" == "tn-staging"* ]]; then
-            ENVIRONMENT="tn-staging"
-            ACTION="deploy"
-            echo "Determined action: deploy via tag push to tn-staging environment."
-          else
-            echo "::error::Invalid deploy tag format. Expected 'deploy-tn-staging-*'."
-            exit 1
-          fi
-        else
-          ENVIRONMENT="${{ github.event.inputs.environment }}"
-          ACTION="${{ github.event.inputs.action }}"
-          echo "Workflow dispatched: Action='$ACTION', Environment='$ENVIRONMENT'."
-        fi
-        echo "environment=$ENVIRONMENT" >> "$GITHUB_OUTPUT"
-        echo "action=$ACTION" >> "$GITHUB_OUTPUT"
-
-    - name: Checkout repository
+    - name: Checkout selected branch
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        ref: ${{ github.event.inputs.branch }}
+
+    - name: Verify and locate deploy.sh
+      id: locate_deploy
+      run: |
+        DEPLOY_PATH=$(find "$GITHUB_WORKSPACE" -name deploy.sh -type f -print -quit)
+        
+        if [ -z "$DEPLOY_PATH" ]; then
+          echo "::error::deploy.sh not found anywhere in workspace!"
+          echo "Searching in: $GITHUB_WORKSPACE"
+          echo "Directory contents:"
+          ls -laR "$GITHUB_WORKSPACE"
+          exit 1
+        fi
+        
+        echo "Found deploy.sh at: $DEPLOY_PATH"
+        echo "DEPLOY_SH_PATH=$DEPLOY_PATH" >> $GITHUB_ENV
 
     - name: Set SSH Key and Target Host
       run: |
@@ -74,17 +65,24 @@ jobs:
 
     - name: Perform Deploy or Rollback
       run: |
-        ACTION="${{ steps.vars.outputs.action }}"
+        ACTION="${{ github.event.inputs.action }}"
         HOST="${{ env.host }}"
         TARGET_DIR="${{ env.target_dir }}"
         JUMP_HOST="${{ env.jump_host }}"
+        DEPLOY_SH_PATH="${{ env.DEPLOY_SH_PATH }}"
+
+        echo "Using deploy.sh at: $DEPLOY_SH_PATH"
+        [ -f "$DEPLOY_SH_PATH" ] || { echo "::error::deploy.sh not found at $DEPLOY_SH_PATH"; exit 1; }
+
         SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i jump_key.pem -J $JUMP_HOST -i key.pem $HOST"
         SCP_COMMAND="scp -o StrictHostKeyChecking=no -i jump_key.pem -o ProxyJump=$JUMP_HOST -i key.pem"
+
         if [[ "$ACTION" == "deploy" ]]; then
-          BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
+          BRANCH="${{ github.event.inputs.branch }}"
           echo "Initiating deployment to $HOST from branch: $BRANCH"
-          $SCP_COMMAND deploy.sh $HOST:/home/all-staging-user/deploy.sh
+          $SCP_COMMAND "$DEPLOY_SH_PATH" $HOST:/home/all-staging-user/deploy.sh
           $SSH_COMMAND "chmod +x /home/all-staging-user/deploy.sh && /home/all-staging-user/deploy.sh $TARGET_DIR $BRANCH deploy"
+
         elif [[ "$ACTION" == "rollback" ]]; then
           ROLLBACK_TAG="${{ github.event.inputs.rollback_tag }}"
           if [[ -z "$ROLLBACK_TAG" ]]; then
@@ -92,7 +90,7 @@ jobs:
             exit 1
           fi
           echo "Initiating rollback to tag: $ROLLBACK_TAG on $HOST"
-          $SCP_COMMAND deploy.sh $HOST:/home/all-staging-user/deploy.sh
+          $SCP_COMMAND "$DEPLOY_SH_PATH" $HOST:/home/all-staging-user/deploy.sh
           $SSH_COMMAND "chmod +x /home/all-staging-user/deploy.sh && /home/all-staging-user/deploy.sh $TARGET_DIR $ROLLBACK_TAG rollback"
         else
           echo "::error::Invalid action specified: $ACTION"

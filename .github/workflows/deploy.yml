@@ -65,13 +65,24 @@ jobs:
         fetch-depth: 0
         ref: ${{ github.event.inputs.branch || 'lais-v2.0' }}
 
-    - name: Verify files
+    - name: Verify repository structure
       run: |
-        echo "Working directory: $(pwd)"
+        echo "Current directory: $(pwd)"
+        echo "Changing to repository root: $GITHUB_WORKSPACE"
+        cd "$GITHUB_WORKSPACE"
+        echo "Now in: $(pwd)"
         echo "Repository contents:"
         ls -la
-        echo "deploy.sh contents:"
-        cat deploy.sh || echo "Cannot read deploy.sh"
+        echo "Checking deploy.sh:"
+        if [ -f "deploy.sh" ]; then
+          echo "deploy.sh found! Contents:"
+          head -n 5 deploy.sh
+        else
+          echo "::error::deploy.sh NOT FOUND in repository root!"
+          echo "Files in root:"
+          ls -la ./
+          exit 1
+        fi
 
     - name: Set SSH Key and Target Host
       run: |
@@ -84,14 +95,18 @@ jobs:
 
     - name: Perform Deploy or Rollback
       run: |
+        # Always operate from repository root
+        cd "$GITHUB_WORKSPACE"
+        
         ACTION="${{ steps.vars.outputs.action }}"
         HOST="${{ env.host }}"
         TARGET_DIR="${{ env.target_dir }}"
         JUMP_HOST="${{ env.jump_host }}"
         
-        # Use absolute path to deploy.sh
+        # Absolute path to deploy.sh
         DEPLOY_SH_PATH="$GITHUB_WORKSPACE/deploy.sh"
         echo "Using deploy.sh at: $DEPLOY_SH_PATH"
+        [ -f "$DEPLOY_SH_PATH" ] || { echo "::error::deploy.sh not found at $DEPLOY_SH_PATH"; exit 1; }
         
         SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i jump_key.pem -J $JUMP_HOST -i key.pem $HOST"
         SCP_COMMAND="scp -o StrictHostKeyChecking=no -i jump_key.pem -o ProxyJump=$JUMP_HOST -i key.pem"

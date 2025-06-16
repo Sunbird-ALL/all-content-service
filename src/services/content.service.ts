@@ -5,7 +5,7 @@ import { content, contentDocument } from '../schemas/content.schema';
 import { HttpService } from '@nestjs/axios';
 import en_config from 'src/config/language/en';
 import common_config from 'src/config/commonConfig';
-import common_configs from 'src/config/newComplexityConfig';
+import common_configs from 'src/config/readingComplexityConfig';
 
 @Injectable()
 export class contentService {
@@ -335,7 +335,7 @@ export class contentService {
     level_competency = [],
   ): Promise<any> {
     let nextTokenArr = [];
-    let newComplexityLang =['hi'];
+    let readingComplexityLang =['hi'];
     if (tokenArr.length >= limit * 2) {
       nextTokenArr = tokenArr.slice(limit, limit * 2);
     } else {
@@ -349,7 +349,7 @@ export class contentService {
       let prevContentLevel = '';
       let contentQueryParam = [];
       let complexityQueryParam = [];
-      const configs = newComplexityLang.includes(language) ? common_configs : common_config;
+      const configs = readingComplexityLang.includes(language) ? common_configs : common_config;
       let contentLevel = configs.contentLevel;
       let complexity = configs.complexity;
 
@@ -391,7 +391,7 @@ export class contentService {
           delete complexityQueryParamEle.level;
           delete complexityQueryParamEle.contentType;
           delete complexityQueryParamEle.language;
-          if(newComplexityLang.includes(language)) {
+          if(readingComplexityLang.includes(language)) {
             mileStoneQuery.push({
               readingComplexity:
                 complexityQueryParamEle.readingComplexity,

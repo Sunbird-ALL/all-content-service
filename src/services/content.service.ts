@@ -334,6 +334,7 @@ export class contentService {
     level_competency = [],
   ): Promise<any> {
     let nextTokenArr = [];
+    let readingComplexityLang =['hi'];
     if (tokenArr.length >= limit * 2) {
       nextTokenArr = tokenArr.slice(limit, limit * 2);
     } else {
@@ -348,7 +349,7 @@ export class contentService {
       let contentQueryParam = [];
       let complexityQueryParam = [];
       let contentLevel = common_config.contentLevel;
-      let complexity = common_config.complexity;
+      let complexity = readingComplexityLang.includes(language) ? common_config.readingComplexity : common_config.complexity ;
 
       if (cLevel != '' || complexityLevel.length != 0) {
         if (cLevel != 'L1') {
@@ -388,13 +389,22 @@ export class contentService {
           delete complexityQueryParamEle.level;
           delete complexityQueryParamEle.contentType;
           delete complexityQueryParamEle.language;
-          mileStoneQuery.push({
-            totalPhonicComplexity:
-              complexityQueryParamEle.totalPhonicComplexity,
-          });
-          mileStoneQuery.push({
-            totalOrthoComplexity: complexityQueryParamEle.totalOrthoComplexity,
-          });
+          if(readingComplexityLang.includes(language)) {
+            mileStoneQuery.push({
+              readingComplexity:
+                complexityQueryParamEle.readingComplexity,
+            });
+
+          }
+          else {
+            mileStoneQuery.push({
+              totalPhonicComplexity:
+                complexityQueryParamEle.totalPhonicComplexity,
+            });
+            mileStoneQuery.push({
+              totalOrthoComplexity: complexityQueryParamEle.totalOrthoComplexity,
+            });
+          }
         }
       }
 

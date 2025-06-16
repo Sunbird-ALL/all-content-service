@@ -24,7 +24,7 @@ on:
       branch:
         description: 'Branch to deploy (only for "deploy" action)'
         required: false
-        default: 'lais-v2.0'  # Added default branch
+        default: 'lais-v2.0'
       rollback_tag:
         description: 'Tag to rollback to (only for "rollback" action, e.g., deploy-tn-staging-v1.0.0)'
         required: false
@@ -63,17 +63,15 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        ref: ${{ github.event.inputs.branch || 'lais-v2.0' }}  # Explicitly checkout lais-v2.0 if no branch specified
+        ref: ${{ github.event.inputs.branch || 'lais-v2.0' }}
 
-    - name: Verify deploy.sh exists
+    - name: Verify files
       run: |
-        echo "Current directory: $(pwd)"
-        echo "Files in directory:"
+        echo "Working directory: $(pwd)"
+        echo "Repository contents:"
         ls -la
-        if [ ! -f "deploy.sh" ]; then
-          echo "::error::deploy.sh not found in repository root!"
-          exit 1
-        fi
+        echo "deploy.sh contents:"
+        cat deploy.sh || echo "Cannot read deploy.sh"
 
     - name: Set SSH Key and Target Host
       run: |
@@ -90,13 +88,18 @@ jobs:
         HOST="${{ env.host }}"
         TARGET_DIR="${{ env.target_dir }}"
         JUMP_HOST="${{ env.jump_host }}"
+        
+        # Use absolute path to deploy.sh
+        DEPLOY_SH_PATH="$GITHUB_WORKSPACE/deploy.sh"
+        echo "Using deploy.sh at: $DEPLOY_SH_PATH"
+        
         SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i jump_key.pem -J $JUMP_HOST -i key.pem $HOST"
         SCP_COMMAND="scp -o StrictHostKeyChecking=no -i jump_key.pem -o ProxyJump=$JUMP_HOST -i key.pem"
         
         if [[ "$ACTION" == "deploy" ]]; then
           BRANCH="${{ github.event.inputs.branch || 'lais-v2.0' }}"
           echo "Initiating deployment to $HOST from branch: $BRANCH"
-          $SCP_COMMAND ./deploy.sh $HOST:/home/all-staging-user/deploy.sh
+          $SCP_COMMAND "$DEPLOY_SH_PATH" $HOST:/home/all-staging-user/deploy.sh
           $SSH_COMMAND "chmod +x /home/all-staging-user/deploy.sh && /home/all-staging-user/deploy.sh $TARGET_DIR $BRANCH deploy"
         elif [[ "$ACTION" == "rollback" ]]; then
           ROLLBACK_TAG="${{ github.event.inputs.rollback_tag }}"
@@ -105,7 +108,7 @@ jobs:
             exit 1
           fi
           echo "Initiating rollback to tag: $ROLLBACK_TAG on $HOST"
-          $SCP_COMMAND ./deploy.sh $HOST:/home/all-staging-user/deploy.sh
+          $SCP_COMMAND "$DEPLOY_SH_PATH" $HOST:/home/all-staging-user/deploy.sh
           $SSH_COMMAND "chmod +x /home/all-staging-user/deploy.sh && /home/all-staging-user/deploy.sh $TARGET_DIR $ROLLBACK_TAG rollback"
         else
           echo "::error::Invalid action specified: $ACTION"

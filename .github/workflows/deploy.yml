@@ -57,10 +57,19 @@ jobs:
         fi
         echo "environment=$ENVIRONMENT" >> "$GITHUB_OUTPUT"
         echo "action=$ACTION" >> "$GITHUB_OUTPUT"
+
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+    - name: Debug – show working directory and contents
+      run: |
+        echo "Working directory:"
+        pwd
+        echo "Contents:"
+        ls -la
 
     - name: Set SSH Key and Target Host
       run: |
@@ -70,6 +79,7 @@ jobs:
         echo "host=${{ secrets.TN_STAGING_HOST }}" >> "$GITHUB_ENV"
         echo "target_dir=/home/all-staging-user/all-services/all-content-deploy" >> "$GITHUB_ENV"
         echo "jump_host=${{ secrets.JUMPHOST }}" >> "$GITHUB_ENV"
+
     - name: Perform Deploy or Rollback
       run: |
         ACTION="${{ steps.vars.outputs.action }}"
@@ -78,11 +88,19 @@ jobs:
         JUMP_HOST="${{ env.jump_host }}"
         SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i jump_key.pem -J $JUMP_HOST -i key.pem $HOST"
         SCP_COMMAND="scp -o StrictHostKeyChecking=no -i jump_key.pem -o ProxyJump=$JUMP_HOST -i key.pem"
+
+        echo "Validating deploy.sh exists..."
+        if [[ ! -f ./deploy.sh ]]; then
+          echo "::error::deploy.sh not found in repo root."
+          exit 1
+        fi
+
         if [[ "$ACTION" == "deploy" ]]; then
           BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
           echo "Initiating deployment to $HOST from branch: $BRANCH"
-          $SCP_COMMAND deploy.sh $HOST:/home/all-staging-user/deploy.sh
+          $SCP_COMMAND ./deploy.sh $HOST:/home/all-staging-user/deploy.sh
           $SSH_COMMAND "chmod +x /home/all-staging-user/deploy.sh && /home/all-staging-user/deploy.sh $TARGET_DIR $BRANCH deploy"
+
         elif [[ "$ACTION" == "rollback" ]]; then
           ROLLBACK_TAG="${{ github.event.inputs.rollback_tag }}"
           if [[ -z "$ROLLBACK_TAG" ]]; then
@@ -90,8 +108,9 @@ jobs:
             exit 1
           fi
           echo "Initiating rollback to tag: $ROLLBACK_TAG on $HOST"
-          $SCP_COMMAND deploy.sh $HOST:/home/all-staging-user/deploy.sh
+          $SCP_COMMAND ./deploy.sh $HOST:/home/all-staging-user/deploy.sh
           $SSH_COMMAND "chmod +x /home/all-staging-user/deploy.sh && /home/all-staging-user/deploy.sh $TARGET_DIR $ROLLBACK_TAG rollback"
+
         else
           echo "::error::Invalid action specified: $ACTION"
           exit 1

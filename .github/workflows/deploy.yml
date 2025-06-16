@@ -40,6 +40,7 @@ jobs:
       run: |
         ENVIRONMENT=""
         ACTION=""
+        BRANCH=""
         if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/* ]]; then
           TAG_PREFIX="${GITHUB_REF#refs/tags/deploy-}"
           if [[ "$TAG_PREFIX" == "tn-staging"* ]]; then
@@ -64,12 +65,10 @@ jobs:
         fetch-depth: 0
         ref: ${{ github.event.inputs.branch || github.ref_name }}
 
-    - name: Debug – show working directory and contents
+    - name: Debug - List repo files
       run: |
-        echo "Working directory:"
-        pwd
-        echo "Contents:"
-        ls -la
+        echo "Contents of current directory:"
+        ls -al
 
     - name: Set SSH Key and Target Host
       run: |
@@ -89,18 +88,12 @@ jobs:
         SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i jump_key.pem -J $JUMP_HOST -i key.pem $HOST"
         SCP_COMMAND="scp -o StrictHostKeyChecking=no -i jump_key.pem -o ProxyJump=$JUMP_HOST -i key.pem"
 
-        echo "Validating deploy.sh exists..."
-        if [[ ! -f ./deploy.sh ]]; then
-          echo "::error::deploy.sh not found in repo root."
-          exit 1
-        fi
-
         if [[ "$ACTION" == "deploy" ]]; then
           BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
           echo "Initiating deployment to $HOST from branch: $BRANCH"
           $SCP_COMMAND ./deploy.sh $HOST:/home/all-staging-user/deploy.sh
           $SSH_COMMAND "chmod +x /home/all-staging-user/deploy.sh && /home/all-staging-user/deploy.sh $TARGET_DIR $BRANCH deploy"
-
+        
         elif [[ "$ACTION" == "rollback" ]]; then
           ROLLBACK_TAG="${{ github.event.inputs.rollback_tag }}"
           if [[ -z "$ROLLBACK_TAG" ]]; then
@@ -110,7 +103,7 @@ jobs:
           echo "Initiating rollback to tag: $ROLLBACK_TAG on $HOST"
           $SCP_COMMAND ./deploy.sh $HOST:/home/all-staging-user/deploy.sh
           $SSH_COMMAND "chmod +x /home/all-staging-user/deploy.sh && /home/all-staging-user/deploy.sh $TARGET_DIR $ROLLBACK_TAG rollback"
-
+        
         else
           echo "::error::Invalid action specified: $ACTION"
           exit 1

@@ -36,12 +36,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.branch || 'lais-v2.0' }}
 
       - name: Setup SSH Key
         run: |
-          echo "${{ secrets.SSH_KEY }}" > key.pem
-          chmod 600 key.pem
+          echo "${{ secrets.ALL_SERVER_SSH_KEY }}" > key_target.pem
+          chmod 600 key_target.pem
+
+          echo "${{ secrets.ALL_SERVER_SSH_KEY }}" > key_jump.pem
+          chmod 600 key_jump.pem
+
           echo "host=${{ secrets.TN_STAGING_HOST }}" >> "$GITHUB_ENV"
           echo "jump_host=${{ secrets.JUMPHOST }}" >> "$GITHUB_ENV"
           echo "target_dir=/home/all-staging-user/all-services/all-content-deploy" >> "$GITHUB_ENV"
@@ -55,18 +58,51 @@ jobs:
           BRANCH="${{ github.event.inputs.branch }}"
           ROLLBACK_TAG="${{ github.event.inputs.rollback_tag }}"
 
-          SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i key.pem -J $JUMP_HOST $HOST"
+          SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i key_jump.pem -J $JUMP_HOST -i key_target.pem $HOST"
 
           if [[ "$ACTION" == "deploy" ]]; then
             echo "Deploying branch $BRANCH to $HOST"
-            $SSH_COMMAND "cd $TARGET_DIR && chmod +x deploy.sh && ./deploy.sh $TARGET_DIR $BRANCH deploy"
+            $SSH_COMMAND << EOF
+              echo "Navigating to $TARGET_DIR"
+              cd "$TARGET_DIR" || { echo "Error: Directory $TARGET_DIR not found."; exit 1; }
+              echo "Fetching all latest changes..."
+              git fetch --all
+              echo "Checking out $BRANCH..."
+              git checkout "$BRANCH" || { echo "Error: Failed to checkout branch $BRANCH."; exit 1; }
+              echo "Pulling latest changes for $BRANCH..."
+              git pull origin "$BRANCH" || { echo "Error: Pull failed for branch $BRANCH."; exit 1; }
+              echo "Stopping existing Docker containers..."
+              docker-compose down || echo "No running containers to stop."
+              echo "Building and starting new Docker containers..."
+              docker-compose up -d --build || { echo "Docker compose failed."; exit 1; }
+              echo "Cleaning dangling Docker images..."
+              docker images --no-trunc -aqf "dangling=true" | xargs -r docker rmi || echo "No dangling images to remove."
+              echo "Deployment complete for $BRANCH."
+EOF
+
           elif [[ "$ACTION" == "rollback" ]]; then
             if [[ -z "$ROLLBACK_TAG" ]]; then
-              echo '::error::Rollback tag is required'
+              echo "::error::Rollback tag is required"
               exit 1
             fi
+
             echo "Rolling back to tag $ROLLBACK_TAG on $HOST"
-            $SSH_COMMAND "cd $TARGET_DIR && chmod +x deploy.sh && ./deploy.sh $TARGET_DIR $ROLLBACK_TAG rollback"
+            $SSH_COMMAND << EOF
+              echo "Navigating to $TARGET_DIR"
+              cd "$TARGET_DIR" || { echo "Error: Directory $TARGET_DIR not found."; exit 1; }
+              echo "Fetching tags..."
+              git fetch --all --tags
+              echo "Checking out tag $ROLLBACK_TAG..."
+              git checkout "tags/$ROLLBACK_TAG" || { echo "Error: Failed to checkout tag $ROLLBACK_TAG."; exit 1; }
+              echo "Stopping current Docker containers..."
+              docker-compose down || echo "No running containers to stop."
+              echo "Building and starting Docker containers from tag $ROLLBACK_TAG..."
+              docker-compose up -d --build || { echo "Docker compose failed."; exit 1; }
+              echo "Cleaning dangling Docker images..."
+              docker images --no-trunc -aqf "dangling=true" | xargs -r docker rmi || echo "No dangling images to remove."
+              echo "Rollback to $ROLLBACK_TAG complete."
+EOF
+
           else
             echo "::error::Invalid action: $ACTION"
             exit 1

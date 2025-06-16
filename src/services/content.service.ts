@@ -5,7 +5,6 @@ import { content, contentDocument } from '../schemas/content.schema';
 import { HttpService } from '@nestjs/axios';
 import en_config from 'src/config/language/en';
 import common_config from 'src/config/commonConfig';
-import common_configs from 'src/config/readingComplexityConfig';
 
 @Injectable()
 export class contentService {
@@ -349,9 +348,8 @@ export class contentService {
       let prevContentLevel = '';
       let contentQueryParam = [];
       let complexityQueryParam = [];
-      const configs = readingComplexityLang.includes(language) ? common_configs : common_config;
-      let contentLevel = configs.contentLevel;
-      let complexity = configs.complexity;
+      let contentLevel = common_config.contentLevel;
+      let complexity = readingComplexityLang.includes(language) ? common_config.readingComplexity : common_config.complexity ;
 
       if (cLevel != '' || complexityLevel.length != 0) {
         if (cLevel != 'L1') {

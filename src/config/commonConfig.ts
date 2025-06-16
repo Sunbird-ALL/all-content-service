@@ -165,6 +165,62 @@ var common_config = {
       contentType: 'Sentence',
     },
   ],
+  readingComplexity: [
+    {
+      level: 'C0',
+      readingComplexity : {$lt:1},
+      language: 'ta',
+      contentType: 'Word',
+    },
+    {
+      level: 'C1',
+      readingComplexity : { $gte :1 ,$lte:8 },
+      language: 'ta',
+      contentType: 'Word',
+    },
+    {
+      level: 'C1',
+      readingComplexity : { $lte:12 },
+      language: 'ta',
+      contentType: 'Sentence',
+    },
+    {
+      level: 'C2',
+      readingComplexity : { $lt:15 },
+      language: 'ta',
+      contentType: 'Word',
+    },
+    {
+      level: 'C2',
+      language: 'ta',
+      readingComplexity : { $lte:30 },
+      contentType: 'Sentence',
+    },
+    {
+      level: 'C3',
+      readingComplexity : { $lte:20},
+      language: 'ta',
+      contentType: 'Word',
+    },
+    {
+      level: 'C3',
+      readingComplexity : { $lte:50},
+      language: 'ta',
+      contentType: 'Sentence',
+    },
+    {
+      level: 'C4',
+      readingComplexity : { $gt:20},
+      language: 'ta',
+      contentType: 'Word',
+    },
+    {
+      level: 'C4',
+      readingComplexity : { $gt:50},
+      language: 'ta',
+      contentType: 'Sentence',
+    },
+  ],
 };
 
 export default common_config;

@@ -23,7 +23,7 @@ on:
         required: false
         default: 'lais-v2.0'
       rollback_tag:
-        description: 'Tag to rollback to (only for "rollback" action, e.g., deploy-tn-staging-v1.0.0)'
+        description: 'Tag to rollback to (only for "rollback" action)'
         required: false
 
 jobs:
@@ -32,41 +32,42 @@ jobs:
     environment: tn-staging
 
     steps:
-    - name: Checkout (for internal use, not needed on server)
+    - name: Checkout Repository
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
         ref: ${{ github.event.inputs.branch || 'lais-v2.0' }}
 
-    - name: Set SSH Key and Target Host
+    - name: Set SSH Key and Remote Info
       run: |
         echo "${{ secrets.SSH_KEY }}" > key.pem
-        echo "${{ secrets.SSH_KEY }}" > jump_key.pem
-        chmod 600 key.pem jump_key.pem
+        chmod 600 key.pem
         echo "host=${{ secrets.TN_STAGING_HOST }}" >> "$GITHUB_ENV"
-        echo "target_dir=/home/all-staging-user/all-services/all-content-deploy" >> "$GITHUB_ENV"
         echo "jump_host=${{ secrets.JUMPHOST }}" >> "$GITHUB_ENV"
+        echo "target_dir=/home/all-staging-user/all-services/all-content-deploy" >> "$GITHUB_ENV"
 
-    - name: Perform Deploy or Rollback
+    - name: Run deploy.sh via SSH
       run: |
         ACTION="${{ github.event.inputs.action }}"
         HOST="${{ env.host }}"
-        TARGET_DIR="${{ env.target_dir }}"
         JUMP_HOST="${{ env.jump_host }}"
-        SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i jump_key.pem -J $JUMP_HOST -i key.pem $HOST"
+        TARGET_DIR="${{ env.target_dir }}"
+        SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i key.pem -J $JUMP_HOST $HOST"
 
         if [[ "$ACTION" == "deploy" ]]; then
-          BRANCH="${{ github.event.inputs.branch }}"
-          echo "Initiating deployment on $HOST from branch: $BRANCH"
-          $SSH_COMMAND "cd $TARGET_DIR && ./deploy.sh $TARGET_DIR $BRANCH deploy"
+          BRANCH="${{ github.event.inputs.branch || 'lais-v2.0' }}"
+          echo "Initiating deployment to $HOST from branch: $BRANCH"
+          $SSH_COMMAND "cd $TARGET_DIR && chmod +x deploy.sh && ./deploy.sh $TARGET_DIR $BRANCH deploy"
+
         elif [[ "$ACTION" == "rollback" ]]; then
           ROLLBACK_TAG="${{ github.event.inputs.rollback_tag }}"
           if [[ -z "$ROLLBACK_TAG" ]]; then
             echo "::error::Rollback tag is required for rollback action."
             exit 1
           fi
-          echo "Initiating rollback on $HOST to tag: $ROLLBACK_TAG"
-          $SSH_COMMAND "cd $TARGET_DIR && ./deploy.sh $TARGET_DIR $ROLLBACK_TAG rollback"
+          echo "Initiating rollback to tag: $ROLLBACK_TAG on $HOST"
+          $SSH_COMMAND "cd $TARGET_DIR && chmod +x deploy.sh && ./deploy.sh $TARGET_DIR $ROLLBACK_TAG rollback"
+
         else
           echo "::error::Invalid action specified: $ACTION"
           exit 1

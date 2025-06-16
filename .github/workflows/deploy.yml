@@ -65,24 +65,26 @@ jobs:
         fetch-depth: 0
         ref: ${{ github.event.inputs.branch || 'lais-v2.0' }}
 
-    - name: Verify repository structure
+    - name: Verify and locate deploy.sh
+      id: locate_deploy
       run: |
-        echo "Current directory: $(pwd)"
-        echo "Changing to repository root: $GITHUB_WORKSPACE"
-        cd "$GITHUB_WORKSPACE"
-        echo "Now in: $(pwd)"
-        echo "Repository contents:"
-        ls -la
-        echo "Checking deploy.sh:"
-        if [ -f "deploy.sh" ]; then
-          echo "deploy.sh found! Contents:"
-          head -n 5 deploy.sh
-        else
-          echo "::error::deploy.sh NOT FOUND in repository root!"
-          echo "Files in root:"
-          ls -la ./
+        # Search for deploy.sh in the entire workspace
+        DEPLOY_PATH=$(find "$GITHUB_WORKSPACE" -name deploy.sh -type f -print -quit)
+        
+        if [ -z "$DEPLOY_PATH" ]; then
+          echo "::error::deploy.sh not found anywhere in workspace!"
+          echo "Searching in: $GITHUB_WORKSPACE"
+          echo "Directory contents:"
+          ls -laR "$GITHUB_WORKSPACE"
           exit 1
         fi
+        
+        echo "Found deploy.sh at: $DEPLOY_PATH"
+        echo "File contents (first 5 lines):"
+        head -n 5 "$DEPLOY_PATH"
+        
+        # Make path available to subsequent steps
+        echo "DEPLOY_SH_PATH=$DEPLOY_PATH" >> $GITHUB_ENV
 
     - name: Set SSH Key and Target Host
       run: |
@@ -95,16 +97,12 @@ jobs:
 
     - name: Perform Deploy or Rollback
       run: |
-        # Always operate from repository root
-        cd "$GITHUB_WORKSPACE"
-        
         ACTION="${{ steps.vars.outputs.action }}"
         HOST="${{ env.host }}"
         TARGET_DIR="${{ env.target_dir }}"
         JUMP_HOST="${{ env.jump_host }}"
+        DEPLOY_SH_PATH="${{ env.DEPLOY_SH_PATH }}"
         
-        # Absolute path to deploy.sh
-        DEPLOY_SH_PATH="$GITHUB_WORKSPACE/deploy.sh"
         echo "Using deploy.sh at: $DEPLOY_SH_PATH"
         [ -f "$DEPLOY_SH_PATH" ] || { echo "::error::deploy.sh not found at $DEPLOY_SH_PATH"; exit 1; }
         

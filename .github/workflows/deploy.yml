@@ -1,9 +1,6 @@
 name: Deploy or Rollback All-Content-Service
 
 on:
-  push:
-    tags:
-      - 'deploy-tn-staging-*'
   workflow_dispatch:
     inputs:
       action:
@@ -33,10 +30,9 @@ jobs:
   deploy-or-rollback:
     runs-on: ubuntu-latest
     environment: tn-staging
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     steps:
-    - name: Checkout repository
+    - name: Checkout (for internal use, not needed on server)
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -53,29 +49,24 @@ jobs:
 
     - name: Perform Deploy or Rollback
       run: |
-        ACTION="${{ github.event.inputs.action || 'deploy' }}"
+        ACTION="${{ github.event.inputs.action }}"
         HOST="${{ env.host }}"
         TARGET_DIR="${{ env.target_dir }}"
         JUMP_HOST="${{ env.jump_host }}"
-        
         SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i jump_key.pem -J $JUMP_HOST -i key.pem $HOST"
 
         if [[ "$ACTION" == "deploy" ]]; then
-          BRANCH="${{ github.event.inputs.branch || 'lais-v2.0' }}"
-          echo "Initiating deployment to $HOST from branch: $BRANCH"
-          $SSH_COMMAND "cd $TARGET_DIR && \
-                        chmod +x deploy.sh && \
-                        ./deploy.sh $TARGET_DIR $BRANCH deploy"
+          BRANCH="${{ github.event.inputs.branch }}"
+          echo "Initiating deployment on $HOST from branch: $BRANCH"
+          $SSH_COMMAND "cd $TARGET_DIR && ./deploy.sh $TARGET_DIR $BRANCH deploy"
         elif [[ "$ACTION" == "rollback" ]]; then
           ROLLBACK_TAG="${{ github.event.inputs.rollback_tag }}"
           if [[ -z "$ROLLBACK_TAG" ]]; then
             echo "::error::Rollback tag is required for rollback action."
             exit 1
           fi
-          echo "Initiating rollback to tag: $ROLLBACK_TAG on $HOST"
-          $SSH_COMMAND "cd $TARGET_DIR && \
-                        chmod +x deploy.sh && \
-                        ./deploy.sh $TARGET_DIR $ROLLBACK_TAG rollback"
+          echo "Initiating rollback on $HOST to tag: $ROLLBACK_TAG"
+          $SSH_COMMAND "cd $TARGET_DIR && ./deploy.sh $TARGET_DIR $ROLLBACK_TAG rollback"
         else
           echo "::error::Invalid action specified: $ACTION"
           exit 1

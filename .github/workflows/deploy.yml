@@ -20,7 +20,7 @@ on:
           - tn-staging
       branch:
         description: 'Branch to deploy (only for "deploy" action)'
-        required: true
+        required: false
         default: 'lais-v2.0'
       rollback_tag:
         description: 'Tag to rollback to (only for "rollback" action, e.g., deploy-tn-staging-v1.0.0)'
@@ -32,17 +32,16 @@ jobs:
     environment: tn-staging
 
     steps:
-    - name: Checkout selected branch
+    - name: Checkout repository
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
         ref: ${{ github.event.inputs.branch }}
 
-    - name: Verify and locate deploy.sh
+    - name: Locate deploy.sh
       id: locate_deploy
       run: |
         DEPLOY_PATH=$(find "$GITHUB_WORKSPACE" -name deploy.sh -type f -print -quit)
-        
         if [ -z "$DEPLOY_PATH" ]; then
           echo "::error::deploy.sh not found anywhere in workspace!"
           echo "Searching in: $GITHUB_WORKSPACE"
@@ -50,7 +49,7 @@ jobs:
           ls -laR "$GITHUB_WORKSPACE"
           exit 1
         fi
-        
+
         echo "Found deploy.sh at: $DEPLOY_PATH"
         echo "DEPLOY_SH_PATH=$DEPLOY_PATH" >> $GITHUB_ENV
 
@@ -92,6 +91,7 @@ jobs:
           echo "Initiating rollback to tag: $ROLLBACK_TAG on $HOST"
           $SCP_COMMAND "$DEPLOY_SH_PATH" $HOST:/home/all-staging-user/deploy.sh
           $SSH_COMMAND "chmod +x /home/all-staging-user/deploy.sh && /home/all-staging-user/deploy.sh $TARGET_DIR $ROLLBACK_TAG rollback"
+
         else
           echo "::error::Invalid action specified: $ACTION"
           exit 1

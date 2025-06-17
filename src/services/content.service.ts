@@ -332,6 +332,7 @@ export class contentService {
     complexityLevel,
     graphemesMappedObj,
     level_competency = [],
+    CEFR_level = []
   ): Promise<any> {
     let nextTokenArr = [];
     let readingComplexityLang =['hi'];
@@ -1120,6 +1121,9 @@ export class contentService {
         query['level_complexity.level_competency'] = { $in: level_competency };
       }
 
+      if (CEFR_level?.length > 0) {
+        query["level_complexity.CEFR_level"] = {$in:CEFR_level};
+      }
       const allTokenGraphemes = [];
 
       let contentData = [];
@@ -1332,7 +1336,8 @@ export class contentService {
             $elemMatch: {},
           },
           contentType: contentType,
-          'level_complexity.level_competency': { $in: level_competency },
+          "level_complexity.level_competency": {$in:level_competency},
+          ...(CEFR_level.length > 0 && { "level_complexity.CEFR_level": { $in: CEFR_level } })
         };
 
         randomContentQuery.contentSourceData.$elemMatch['language'] =
@@ -1957,6 +1962,7 @@ export class contentService {
     language,
     levelCompetencyArr,
     tags,
+    CEFR_level = []
   ) {
     let queries = [];
     const numLevels = levelCompetencyArr.length;
@@ -1981,6 +1987,7 @@ export class contentService {
                       },
                     },
                     'level_complexity.level_competency': levelCompetency,
+                    ...(CEFR_level.length > 0 && { "level_complexity.CEFR_level": { $in: CEFR_level } }),
                     tags: { $all: tags },
                   },
                 },
@@ -2000,8 +2007,9 @@ export class contentService {
                         language: language,
                       },
                     },
-                    'level_complexity.level_competency': levelCompetency,
-                  },
+                    "level_complexity.level_competency": levelCompetency,
+                    ...(CEFR_level.length > 0 && { "level_complexity.CEFR_level": { $in: CEFR_level } })
+                  }
                 },
                 { $sample: { size: splitLimit } }, // Fetch for the first level
               ]),
@@ -2024,6 +2032,7 @@ export class contentService {
                       },
                     },
                     'level_complexity.level_competency': levelCompetency,
+                    ...(CEFR_level.length > 0 && { "level_complexity.CEFR_level": { $in: CEFR_level } }),
                     tags: { $all: tags },
                   },
                 },
@@ -2043,8 +2052,9 @@ export class contentService {
                         language: language,
                       },
                     },
-                    'level_complexity.level_competency': levelCompetency,
-                  },
+                    "level_complexity.level_competency": levelCompetency,
+                    ...(CEFR_level.length > 0 && { "level_complexity.CEFR_level": { $in: CEFR_level } })
+                  }
                 },
                 { $sample: { size: splitLimit - handleLimit } }, // Fetch fewer items for other levels
               ]),
@@ -2073,7 +2083,23 @@ export class contentService {
     if (results.length < limit) {
       const remainingLimit = limit - results.length;
       let additionalContent;
-      if (tags.length > 0) {
+      if(tags.length > 0){
+        additionalContent= await this.content.aggregate([
+        {
+          $match: {
+            contentType: contentType,
+            language: language,
+            mechanics_data: {
+              $elemMatch: { mechanics_id: mechanics_id, language: language }
+            },
+            "level_complexity.level_competency": { $exists: true }, 
+            ...(CEFR_level.length > 0 && { "level_complexity.CEFR_level": { $in: CEFR_level } }),
+            "tags":{ $all: tags }
+          }
+        },
+        { $sample: { size: remainingLimit } }
+      ]);
+      }else{
         additionalContent = await this.content.aggregate([
           {
             $match: {
@@ -2082,25 +2108,11 @@ export class contentService {
               mechanics_data: {
                 $elemMatch: { mechanics_id: mechanics_id, language: language },
               },
-              'level_complexity.level_competency': { $exists: true },
-              tags: { $all: tags },
-            },
+              "level_complexity.level_competency": { $exists: true },
+              ...(CEFR_level.length > 0 && { "level_complexity.CEFR_level": { $in: CEFR_level } })
+            }
           },
-          { $sample: { size: remainingLimit } },
-        ]);
-      } else {
-        additionalContent = await this.content.aggregate([
-          {
-            $match: {
-              contentType: contentType,
-              language: language,
-              mechanics_data: {
-                $elemMatch: { mechanics_id: mechanics_id, language: language },
-              },
-              'level_complexity.level_competency': { $exists: true },
-            },
-          },
-          { $sample: { size: remainingLimit } },
+          { $sample: { size: remainingLimit } }
         ]);
       }
 

@@ -75,6 +75,7 @@ export class content {
   level_complexity: {
     level: string;
     level_competency: string;
+    CEFR_level?: string;
   };
 
   @Prop({ type: String, required: false })

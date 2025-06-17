@@ -90,6 +90,7 @@ export class collection {
   level_complexity: {
     level: string;
     level_competency: string;
+    CEFR_level?: string;
   };
 
   @Prop({ required: true })

@@ -66,16 +66,23 @@ export class CollectionService {
     };
   }
 
-  async getCompetencyCollections(level_competency = [], language = "en", contentType, CEFR_level = []): Promise<any[]> {
+  async getCompetencyCollections(
+    level_competency = [],
+    language = 'en',
+    contentType,
+    CEFR_level = [],
+  ): Promise<any[]> {
     let matchQuery = {
-      "level_complexity.level_competency": {$in: level_competency},
-      "language": language,
-      "category": contentType,
-      ...(CEFR_level.length > 0 && { "level_complexity.CEFR_level": {$in: CEFR_level} })
+      'level_complexity.level_competency': { $in: level_competency },
+      language: language,
+      category: contentType,
+      ...(CEFR_level.length > 0 && {
+        'level_complexity.CEFR_level': { $in: CEFR_level },
+      }),
     };
     let collectionIds = await this.collectionModel.aggregate([
-      { 
-          $match: matchQuery
+      {
+        $match: matchQuery,
       },
       {
         $sample: { size: 1 },

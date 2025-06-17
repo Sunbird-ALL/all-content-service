@@ -1038,27 +1038,41 @@ export class contentController {
       let contentCollection;
       let collectionId;
 
-      if(queryData.story_mode === "true" && queryData.level_competency.length > 0) { 
-        collectionId = await this.collectionService.getCompetencyCollections(queryData.level_competency, queryData.language, queryData.contentType, queryData.CEFR_level);
-        const contentData = await this.contentService.pagination(0, parseInt(Batch),queryData.contentType,collectionId);
+      if (
+        queryData.story_mode === 'true' &&
+        queryData.level_competency.length > 0
+      ) {
+        collectionId = await this.collectionService.getCompetencyCollections(
+          queryData.level_competency,
+          queryData.language,
+          queryData.contentType,
+          queryData.CEFR_level,
+        );
+        const contentData = await this.contentService.pagination(
+          0,
+          parseInt(Batch),
+          queryData.contentType,
+          collectionId,
+        );
         let contentArr = contentData['data'];
 
-        if(contentArr.length === 0){
-          
-          await this.contentService.search(
-            queryData.tokenArr,
-            queryData.language,
-            queryData.contentType,
-            parseInt(Batch),
-            queryData.tags,
-            queryData.cLevel,
-            queryData.complexityLevel,
-            queryData.graphemesMappedObj,
-            queryData.level_competency,
-            queryData.CEFR_level
-          ).then((contentData)=>{
-            contentArr = contentData['wordsArr'];
-          });
+        if (contentArr.length === 0) {
+          await this.contentService
+            .search(
+              queryData.tokenArr,
+              queryData.language,
+              queryData.contentType,
+              parseInt(Batch),
+              queryData.tags,
+              queryData.cLevel,
+              queryData.complexityLevel,
+              queryData.graphemesMappedObj,
+              queryData.level_competency,
+              queryData.CEFR_level,
+            )
+            .then((contentData) => {
+              contentArr = contentData['wordsArr'];
+            });
         }
 
         if (queryData.mechanics_id !== undefined) {
@@ -1088,7 +1102,7 @@ export class contentController {
           queryData.complexityLevel,
           queryData.graphemesMappedObj,
           queryData.level_competency,
-          queryData.CEFR_level
+          queryData.CEFR_level,
         );
       } else {
         contentCollection = await this.contentService.getMechanicsContentData(
@@ -1098,7 +1112,7 @@ export class contentController {
           queryData.language,
           queryData.level_competency,
           queryData.tags,
-          queryData.CEFR_level
+          queryData.CEFR_level,
         );
       }
 

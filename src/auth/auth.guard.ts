@@ -13,7 +13,8 @@ import { RedisClientType } from 'redis';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService,
+  constructor(
+    private jwtService: JwtService,
     @Inject('REDIS_CLIENT') private readonly redisClient: RedisClientType,
   ) {}
 
@@ -35,7 +36,6 @@ export class JwtAuthGuard implements CanActivate {
       const secret_key = process.env.JOSE_SECRET || '';
       const hash = createHash('sha256').update(secret_key).digest();
 
-      
       //Step 2: Decrypt the Token
       const jwtDecryptedToken = await jose.jwtDecrypt(token, hash);
 

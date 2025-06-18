@@ -1046,6 +1046,7 @@ export class contentController {
           queryData.level_competency,
           queryData.language,
           queryData.contentType,
+          queryData.CEFR_level,
         );
         const contentData = await this.contentService.pagination(
           0,
@@ -1067,6 +1068,7 @@ export class contentController {
               queryData.complexityLevel,
               queryData.graphemesMappedObj,
               queryData.level_competency,
+              queryData.CEFR_level,
             )
             .then((contentData) => {
               contentArr = contentData['wordsArr'];
@@ -1100,6 +1102,7 @@ export class contentController {
           queryData.complexityLevel,
           queryData.graphemesMappedObj,
           queryData.level_competency,
+          queryData.CEFR_level,
         );
       } else {
         contentCollection = await this.contentService.getMechanicsContentData(
@@ -1109,6 +1112,7 @@ export class contentController {
           queryData.language,
           queryData.level_competency,
           queryData.tags,
+          queryData.CEFR_level,
         );
       }
 

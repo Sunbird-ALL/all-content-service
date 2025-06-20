@@ -19,12 +19,7 @@ async function bootstrap() {
   app.enableCors({
     origin: ['*'],
     methods: ['GET', 'POST', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    credentials: false,
-    exposedHeaders: [
-      'X-Content-Type-Options',
-      'X-Frame-Options',
-      'X-XSS-Protection',
-    ],
+    credentials: false
   });
 
   const config = new DocumentBuilder()
@@ -46,6 +41,7 @@ async function bootstrap() {
       reply.header('X-Content-Type-Options', 'nosniff');
       reply.header('X-Frame-Options', 'DENY');
       reply.header('Content-Security-Policy', "default-src 'self'");
+      reply.header('X-XSS-Protection', '1; mode=block');
       return payload;
     });
 

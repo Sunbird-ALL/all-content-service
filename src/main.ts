@@ -7,6 +7,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppClusterService } from './app-cluster.service';
+import * as cors from 'cors';
+
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -17,14 +19,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   app.setGlobalPrefix('v1');
   app.enableCors({
-    origin: ['*'],
     methods: ['GET', 'POST', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    credentials: false,
-    exposedHeaders: [
-      'X-Content-Type-Options',
-      'X-Frame-Options',
-      'X-XSS-Protection',
-    ],
+    credentials: false
   });
 
   const config = new DocumentBuilder()
@@ -39,6 +35,22 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  // Cors aalowd for the specific url
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true,
+    }),
+  );
+
+  // content-security-policys added
   app
     .getHttpAdapter()
     .getInstance()
@@ -46,6 +58,7 @@ async function bootstrap() {
       reply.header('X-Content-Type-Options', 'nosniff');
       reply.header('X-Frame-Options', 'DENY');
       reply.header('Content-Security-Policy', "default-src 'self'");
+      reply.header('X-XSS-Protection', '1; mode=block');
       return payload;
     });
 

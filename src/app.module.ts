@@ -10,6 +10,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CollectionController } from './controllers/collection.controller';
 import { CollectionService } from './services/collection.service';
 import { HttpModule } from '@nestjs/axios';
+import ValidateApiKeyInterceptor from './middlewares/verify.key';
 
 @Module({
   imports: [
@@ -38,6 +39,6 @@ import { HttpModule } from '@nestjs/axios';
     ]),
   ],
   controllers: [AppController, contentController, CollectionController],
-  providers: [AppService, contentService, CollectionService],
+  providers: [AppService, contentService, CollectionService, ValidateApiKeyInterceptor],
 })
 export class AppModule {}

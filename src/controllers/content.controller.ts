@@ -9,6 +9,7 @@ import {
   Put,
   Query,
   Res,
+  UseInterceptors
 } from '@nestjs/common';
 import { contentService } from '../services/content.service';
 import { CollectionService } from '../services/collection.service';
@@ -21,11 +22,11 @@ import {
   ApiExcludeEndpoint,
   ApiForbiddenResponse,
   ApiOperation,
-  ApiParam,
   ApiResponse,
   ApiTags,
   ApiQuery,
 } from '@nestjs/swagger';
+import ValidateApiKeyInterceptor from '../middlewares/verify.key';
 
 @ApiTags('content')
 @Controller('content')
@@ -146,6 +147,7 @@ export class contentController {
       'Store the data into to the content table',
   })
   @Post()
+  @UseInterceptors(ValidateApiKeyInterceptor)
   async create(@Res() response: FastifyReply, @Body() content: any) {
     try {
       const lcSupportedLanguages = ['ta', 'ka', 'hi', 'te', 'kn'];
@@ -594,6 +596,7 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
+  @UseInterceptors(ValidateApiKeyInterceptor)
   @Get('/getContentWord')
   async getContentWord(
     @Res() response: FastifyReply,
@@ -617,6 +620,7 @@ export class contentController {
 
   @ApiExcludeEndpoint(true)
   @Get('/getContentSentence')
+  @UseInterceptors(ValidateApiKeyInterceptor)
   async getContentSentence(
     @Res() response: FastifyReply,
     @Query('language') language,
@@ -639,6 +643,7 @@ export class contentController {
 
   @ApiExcludeEndpoint(true)
   @Get('/getContentParagraph')
+  @UseInterceptors(ValidateApiKeyInterceptor)
   async getContentParagraph(
     @Res() response: FastifyReply,
     @Query('language') language,
@@ -884,6 +889,7 @@ export class contentController {
   @ApiOperation({
     summary: 'Get all data from the content table'
   })
+  @UseInterceptors(ValidateApiKeyInterceptor)
   @Post('/getContent')
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
@@ -1044,6 +1050,7 @@ export class contentController {
   @ApiOperation({
     summary: 'Get Assessments data'
   })
+  @UseInterceptors(ValidateApiKeyInterceptor)
   @Post('/getAssessment')
   async getAssessment(@Res() response: FastifyReply, @Body() queryData: any) {
     try {

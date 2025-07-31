@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Res,
+  UseInterceptors,
 } from '@nestjs/common';
 import { collection } from 'src/schemas/collection.schema';
 import { CollectionService } from 'src/services/collection.service';
@@ -21,6 +22,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import ValidateApiKeyInterceptor from 'src/middlewares/verify.key';
 
 @ApiTags('collection')
 @Controller('collection')
@@ -86,6 +88,7 @@ export class CollectionController {
     summary:
       'Store collection data for adding the content with the reference of the colletion id',
   })
+  @UseInterceptors(ValidateApiKeyInterceptor)
   @Post()
   async create(@Res() response: FastifyReply, @Body() collection: collection) {
     try {

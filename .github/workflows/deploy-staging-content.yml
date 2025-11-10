@@ -1,4 +1,4 @@
-name: Deploy Dev - All Content Service
+name: Deploy Staging - All Content Service
 
 on:
   push:
@@ -8,9 +8,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: dev
+    environment: staging
     steps:
-      - name: Deploy to Dev Server
+      - name: Deploy to Staging Server
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.HOST }}
@@ -19,5 +19,5 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             export BRANCH=lais-v2.2
-            cd /home/${{ secrets.USERNAME }}/git/all-content-service
+            cd /home/${{ secrets.USERNAME }}/all-services/all-content-service-deploy
             ./deploy.sh

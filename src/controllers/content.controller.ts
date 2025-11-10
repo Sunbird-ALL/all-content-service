@@ -714,9 +714,14 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
-      const Batch: any = limit;
+      // Validate limit parameter for MongoDB $sample
+      let validLimit = parseInt(String(limit));
+      if (isNaN(validLimit) || validLimit <= 0) {
+        validLimit = 5;
+      }
+      
       const { data } = await this.contentService.getContentWord(
-        parseInt(Batch),
+        validLimit,
         language,
       );
       return response.status(HttpStatus.OK).send({ status: 'success', data });
@@ -736,9 +741,14 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
-      const Batch: any = limit;
+      // Validate limit parameter for MongoDB $sample
+      let validLimit = parseInt(String(limit));
+      if (isNaN(validLimit) || validLimit <= 0) {
+        validLimit = 5;
+      }
+      
       const { data } = await this.contentService.getContentSentence(
-        parseInt(Batch),
+        validLimit,
         language,
       );
       return response.status(HttpStatus.OK).send({ status: 'success', data });
@@ -758,9 +768,14 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
-      const Batch: any = limit;
+      // Validate limit parameter for MongoDB $sample
+      let validLimit = parseInt(String(limit));
+      if (isNaN(validLimit) || validLimit <= 0) {
+        validLimit = 5;
+      }
+      
       const { data } = await this.contentService.getContentParagraph(
-        parseInt(Batch),
+        validLimit,
         language,
       );
       return response.status(HttpStatus.OK).send({ status: 'success', data });

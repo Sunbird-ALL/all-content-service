@@ -736,10 +736,16 @@ export class contentController {
     @Query('multilingual') multilingual: string,
   ) {
     try {
+      // Validate limit parameter
+      let validLimit = parseInt(String(limit));
+      if (isNaN(validLimit) || validLimit <= 0) {
+        validLimit = 5;
+      }
+
       const includeMultilingual = multilingual === 'true';
 
       const { data } = await this.contentService.getContentWord(
-        limit,
+        validLimit,
         language,
         includeMultilingual,
       );
@@ -761,9 +767,14 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
-      const Batch: any = limit;
+      // Validate limit parameter
+      let validLimit = parseInt(String(limit));
+      if (isNaN(validLimit) || validLimit <= 0) {
+        validLimit = 5;
+      }
+      
       const { data } = await this.contentService.getContentSentence(
-        parseInt(Batch),
+        validLimit,
         language,
       );
       return response.status(HttpStatus.OK).send({ status: 'success', data });
@@ -783,9 +794,14 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
-      const Batch: any = limit;
+      // Validate limit parameter
+      let validLimit = parseInt(String(limit));
+      if (isNaN(validLimit) || validLimit <= 0) {
+        validLimit = 5;
+      }
+      
       const { data } = await this.contentService.getContentParagraph(
-        parseInt(Batch),
+        validLimit,
         language,
       );
       return response.status(HttpStatus.OK).send({ status: 'success', data });

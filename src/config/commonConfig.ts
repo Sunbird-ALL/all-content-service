@@ -1,3 +1,11 @@
+function generateSequentialTags(prefix, start, end) {
+  const tags = [];
+  for (let i = start; i <= end; i++) {
+    tags.push(prefix + i);
+  }
+  return tags;
+}
+
 var common_config = {
   contentLevel: [
     {
@@ -221,6 +229,42 @@ var common_config = {
       contentType: 'Sentence',
     },
   ],
+  readingComplexityLang : ['hi','te','kn'],
+  tags: [
+    'CEFR_M1_P1',
+    'CEFR_M1_P2',
+    'CEFR_M1_P3',
+    'CEFR_M1_P4',
+    'CEFR_M1_S1',
+    'CEFR_M1_S2',
+    'CEFR_M2_P1',
+    'CEFR_M2_P2',
+    'CEFR_M2_P3',
+    'CEFR_M2_P4',
+    'CEFR_M2_S1',
+    'CEFR_M2_S2',
+    'CEFR_M3_P1',
+    'CEFR_M3_P2',
+    'CEFR_M3_P3',
+    'CEFR_M3_P4',
+    'CEFR_M3_S1',
+    'CEFR_M3_S2',
+    ...generateSequentialTags('CEFR_R1_P', 1, 50),
+    ...generateSequentialTags('CEFR_R2_P', 1, 50),
+    'CEFR_M1_L1',
+    'CEFR_M1_L2',
+    'CEFR_M1_L3',
+    'CEFR_M1_L4',
+    'CEFR_M2_L1',
+    'CEFR_M2_L2',
+    'CEFR_M2_L3',
+    'CEFR_M2_L4',
+    'CEFR_M3_L1',
+    'CEFR_M3_L2',
+    'CEFR_M3_L3',
+    'CEFR_M3_L4'
+]
+
 };
 
 export default common_config;

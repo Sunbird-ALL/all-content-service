@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { content, contentDocument } from '../schemas/content.schema';
+import { multilingual, multilingualDocument } from '../schemas/multilingual.schema';
 import { HttpService } from '@nestjs/axios';
 import en_config from 'src/config/language/en';
 import common_config from 'src/config/commonConfig';
@@ -10,8 +11,9 @@ import common_config from 'src/config/commonConfig';
 export class contentService {
   constructor(
     @InjectModel(content.name) private content: Model<contentDocument>,
+    @InjectModel(multilingual.name) private multilingual: Model<multilingualDocument>,
     private readonly httpService: HttpService,
-  ) {}
+  ) { }
 
   async create(content: content): Promise<content> {
     try {
@@ -34,6 +36,10 @@ export class contentService {
 
   async readById(id: any): Promise<content> {
     return await this.content.findOne({ contentId: id }).exec();
+  }
+
+  async readByIds(ids: string[]): Promise<content[]> {
+    return await this.content.find({ contentId: { $in: ids } }).exec();
   }
 
   async update(id, content: content): Promise<content> {
@@ -105,8 +111,8 @@ export class contentService {
     };
   }
 
-  async getContentWord(limit = 5, language = 'ta') {
-    const data = await this.content.aggregate([
+  async getContentWord(limit = 5, language = 'ta', includeMultilingual = false) {
+    const pipeline: any[] = [
       {
         $match: {
           contentType: 'Word',
@@ -118,12 +124,25 @@ export class contentService {
         },
       },
       { $sample: { size: limit } },
-    ]);
+    ];
+
+    // Multilingual check
+    if (!includeMultilingual) {
+      pipeline.push({
+        $project: {
+          multilingual: 0,
+        },
+      });
+    }
+
+    const data = await this.content.aggregate(pipeline);
+
     return {
       data: data,
       status: 200,
     };
   }
+
 
   async getContentSentence(limit = 5, language = 'ta') {
     const data = await this.content.aggregate([
@@ -327,22 +346,30 @@ export class contentService {
     language = 'ta',
     contentType = 'Word',
     limit = 5,
-    tags = '',
+    tags: string | string[] = '',
     cLevel,
     complexityLevel,
     graphemesMappedObj,
     level_competency = [],
     CEFR_level = [],
   ): Promise<any> {
+    // Convert tags to array format
+    if (typeof tags === 'string') {
+      tags = tags ? tags.split(',').map(tag => tag.trim()) : [];
+    }
+    
     let nextTokenArr = [];
-    let readingComplexityLang = ['hi'];
+    let readingComplexityLang = common_config.readingComplexityLang;
     if (tokenArr.length >= limit * 2) {
       nextTokenArr = tokenArr.slice(limit, limit * 2);
     } else {
       nextTokenArr = tokenArr.slice(limit, tokenArr.length);
     }
     tokenArr = tokenArr.slice(0, limit);
-
+    const isCommonConfigTags = tags && Array.isArray(tags) && tags.some(tag => 
+      common_config.tags.includes(tag)
+    );
+    
     if (language !== 'en') {
       let mileStoneQuery = [];
       let cLevelQuery = [];
@@ -424,8 +451,7 @@ export class contentService {
       const inBetweenRegexPattern = new RegExp(`\\B(${searchChar})`, 'gu');
 
       let batchLimitForEndWith = Math.trunc(limit / 2);
-      const batchLimitForStartWith = (limit % 2) + batchLimitForEndWith;
-
+      const batchLimitForStartWith = isCommonConfigTags ? limit : (limit % 2) + batchLimitForEndWith;
       let wordsArr = [];
       let query: any = {};
       let contentData = [];
@@ -623,7 +649,7 @@ export class contentService {
           return !mileStoneQueryEle.hasOwnProperty('totalOrthoComplexity');
         });
 
-        if (mileStoneQuery != undefined || mileStoneQuery.length != 0) {
+        if (mileStoneQuery != undefined && mileStoneQuery.length != 0) {
           query.contentSourceData.$elemMatch['$or'] = mileStoneQuery;
         }
 
@@ -739,7 +765,9 @@ export class contentService {
           cLevelQuery.push(contentQueryParamEle);
         }
 
-        query.contentSourceData.$elemMatch['$and'] = cLevelQuery;
+        if (cLevelQuery.length > 0) {
+          query.contentSourceData.$elemMatch['$and'] = cLevelQuery;
+        }
 
         await this.content
           .aggregate([
@@ -2183,5 +2211,29 @@ export class contentService {
     });
 
     return { wordsArr: wordsArr };
+  }
+
+  // Multilingual Service Method
+  async createMultilingual(multilingualData: multilingual): Promise<multilingual> {
+    try {
+      const newMultilingual = new this.multilingual(multilingualData);
+      const savedData = await newMultilingual.save();
+      return savedData;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getMultilingualDataByIds(multilingualIds: string | string[]): Promise<multilingual[]> {
+    try {
+      // Convert single string to array for consistent handling
+      const idsArray = Array.isArray(multilingualIds) ? multilingualIds : [multilingualIds];
+      
+      return await this.multilingual.find({
+        multilingual_id: { $in: idsArray }
+      }).exec();
+    } catch (error) {
+      throw error;
+    }
   }
 }

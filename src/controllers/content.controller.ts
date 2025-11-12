@@ -22,12 +22,13 @@ import {
   ApiExcludeEndpoint,
   ApiForbiddenResponse,
   ApiOperation,
-  ApiParam,
   ApiResponse,
   ApiTags,
   ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/auth.guard';
+import en_config from 'src/config/language/en';
+import common_config from 'src/config/commonConfig';
 
 @ApiTags('content')
 @Controller('content')
@@ -37,7 +38,7 @@ export class contentController {
     private readonly contentService: contentService,
     private readonly collectionService: CollectionService,
     private readonly httpService: HttpService,
-  ) {}
+  ) { }
 
   @ApiBody({
     description: 'Request body for storing the data into the content',
@@ -256,6 +257,25 @@ export class contentController {
             for (const wordEle of contentSourceDataEle['text'].split(' ')) {
               syllableCountMap[wordEle] = await getSyllableCount(wordEle);
             }
+            if (common_config.readingComplexityLang.includes(contentSourceDataEle['language'])) {
+              
+              const urls = process.env.ALL_TEXT_EVAL_URL + 'getReadingComplexity';
+
+              const reqBody = {
+                language: contentSourceDataEle['language'],
+                text: contentSourceDataEle['text'],
+              };
+              const readingComplexity = await lastValueFrom(
+                this.httpService
+                  .post(urls, reqBody, {
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                  })
+                  .pipe(map((resp) => resp.data))
+              );
+              newContent.result.readingComplexity = readingComplexity.total_score;
+            }
 
             newContent.result.wordMeasures = newWordMeasures;
 
@@ -267,6 +287,7 @@ export class contentController {
             };
           } else if (contentSourceDataEle['language'] === 'en') {
             const url = process.env.ALL_TEXT_EVAL_URL + 'getPhonemes';
+
             const textData = {
               text: contentSourceDataEle['text'],
             };
@@ -710,8 +731,9 @@ export class contentController {
   @Get('/getContentWord')
   async getContentWord(
     @Res() response: FastifyReply,
-    @Query('language') language,
-    @Query() { limit = 5 },
+    @Query('language') language: string,
+    @Query('limit') limit: number = 5,
+    @Query('multilingual') multilingual: string,
   ) {
     try {
       console.log("limit------", limit);
@@ -726,6 +748,7 @@ export class contentController {
       const { data } = await this.contentService.getContentWord(
         validLimit,
         language,
+        includeMultilingual,
       );
       console.log("data-------", JSON.stringify(data));
       return response.status(HttpStatus.OK).send({ status: 'success', data });
@@ -745,9 +768,14 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
-      const Batch: any = limit;
+      // Validate limit parameter
+      let validLimit = parseInt(String(limit));
+      if (isNaN(validLimit) || validLimit <= 0) {
+        validLimit = 5;
+      }
+      
       const { data } = await this.contentService.getContentSentence(
-        parseInt(Batch),
+        validLimit,
         language,
       );
       return response.status(HttpStatus.OK).send({ status: 'success', data });
@@ -767,9 +795,14 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
-      const Batch: any = limit;
+      // Validate limit parameter
+      let validLimit = parseInt(String(limit));
+      if (isNaN(validLimit) || validLimit <= 0) {
+        validLimit = 5;
+      }
+      
       const { data } = await this.contentService.getContentParagraph(
-        parseInt(Batch),
+        validLimit,
         language,
       );
       return response.status(HttpStatus.OK).send({ status: 'success', data });
@@ -1043,9 +1076,18 @@ export class contentController {
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
       const Batch: any = queryData.limit || 5;
-
       let contentCollection;
       let collectionId;
+
+      const tags = queryData.language === 'en' ? en_config.tags : common_config.tags;
+
+      if (tags.some(tag => queryData.tags.some(qtag => qtag.includes(tag)))) {
+        queryData.cLevel = "";
+        queryData.complexityLevel = "";
+        queryData.graphemesMappedObj = {};
+        queryData.level_competency = [];
+        queryData.tokenArr = [];
+      }
 
       if (
         queryData.story_mode === 'true' &&
@@ -1105,7 +1147,7 @@ export class contentController {
           queryData.tokenArr,
           queryData.language,
           queryData.contentType,
-          parseInt(Batch),
+          parseInt(Batch.limit || Batch),
           queryData.tags,
           queryData.cLevel,
           queryData.complexityLevel,
@@ -1117,12 +1159,76 @@ export class contentController {
         contentCollection = await this.contentService.getMechanicsContentData(
           queryData.contentType,
           queryData.mechanics_id,
-          parseInt(Batch),
+          parseInt(Batch.limit || Batch),
           queryData.language,
           queryData.level_competency,
           queryData.tags,
           queryData.CEFR_level,
         );
+      }
+
+      // Enhance data with multilingual information for imageAudioMap
+      if (contentCollection?.wordsArr?.length > 0) {
+        const enhancedWordsArr = await Promise.all(
+          contentCollection.wordsArr.map(async (item) => {
+            // Handle mechanics_data multilingual enhancement (existing functionality)
+            if (item.mechanics_data?.length > 0) {
+              for (const mechanic of item.mechanics_data) {
+                if (mechanic && mechanic.imageAudioMap?.length > 0) {
+                  const multilingualIds = [...new Set(
+                    mechanic.imageAudioMap
+                      .filter(mapItem => mapItem && mapItem.multilingual_id)
+                      .map(mapItem => mapItem.multilingual_id)
+                  )];
+
+                  if (multilingualIds.length > 0) {
+                    const multilingualData = await this.contentService.getMultilingualDataByIds(multilingualIds as string[]);
+                    const multilingualMap = {};
+                    multilingualData?.forEach(ml => {
+                      if (ml && ml.multilingual_id) {
+                        multilingualMap[ml.multilingual_id] = ml.multilingual;
+                      }
+                    });
+
+                    mechanic.imageAudioMap = mechanic.imageAudioMap.map(mapItem => ({
+                      ...mapItem,
+                      multilingual_data: mapItem.multilingual_id ? 
+                        multilingualMap[mapItem.multilingual_id] || null : null
+                    }));
+                  }
+                }
+              }
+            }
+
+            // Handle contentSourceData multilingual
+            if ((queryData.multilingual === 'true' ||queryData.multilingual === true) && item.contentSourceData?.length > 0) {
+              let multilingualData = {};
+              
+              // Find the contentSourceData for the requested language
+              const sourceData = item.contentSourceData.find(
+                (source) => source.language === queryData.language
+              );
+              
+              if (sourceData?.multilingual_id && Array.isArray(sourceData.multilingual_id)) {
+                // Fetch multilingual data for all multilingual_ids at once
+                const multilingualDocs = await this.contentService.getMultilingualDataByIds(sourceData.multilingual_id);
+                
+                // Structure the multilingual data
+                multilingualDocs?.forEach((doc) => {
+                  if (doc) {
+                    multilingualData[doc.multilingual_id] = doc.multilingual;
+                  }
+                });
+              }
+              
+              item.multilingual_data = multilingualData;
+            }
+
+            return item;
+          })
+        );
+
+        contentCollection.wordsArr = enhancedWordsArr;
       }
 
       return response.status(HttpStatus.CREATED).send({
@@ -1325,13 +1431,25 @@ export class contentController {
   }
 
   @ApiExcludeEndpoint(true)
-  @Get('/:id')
-  async findById(@Res() response: FastifyReply, @Param('id') id) {
-    const content = await this.contentService.readById(id);
-    return response.status(HttpStatus.OK).send({
-      content,
-    });
+  @Get('/getByIds')
+  async findByIds(@Res() response: FastifyReply, @Query('ids') ids: string) {
+    try {
+      const idList = ids.split(',').map(id => id.trim());
+
+      const contents = await this.contentService.readByIds(idList);
+
+      return response.status(HttpStatus.OK).send({
+        contents,
+        count: contents.length,
+      });
+    } catch (error) {
+      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        status: 'error',
+        message: 'Error fetching content: ' + error.message,
+      });
+    }
   }
+
 
   @ApiExcludeEndpoint(true)
   @Put('/:id')
@@ -1493,5 +1611,61 @@ export class contentController {
     return response.status(HttpStatus.OK).send({
       deleted,
     });
+  }
+
+  // Multilingual API
+  @ApiBody({
+    description: 'Request body for creating multilingual data',
+    schema: {
+      type: 'object',
+      properties: {
+        multilingual_id: {
+          type: 'string',
+          example: 'TEACHER',
+          description: 'Unique identifier for the multilingual entry'
+        },
+        multilingual: {
+          type: 'object',
+          description: 'Language-specific data',
+          example: {
+            hi: { text: 'शिक्षक', audio_url: 'c8eff92d5.wav' },
+            gu: { text: 'શિક્ષક', audio_url: 'b6c0f542e.wav' },
+            kn: { text: 'ಶಿಕ್ಷಕ', audio_url: '0d234f9c3.wav' }
+          }
+        }
+      },
+      required: ['multilingual_id', 'multilingual']
+    }
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Multilingual data created successfully'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid data provided'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error'
+  })
+  @ApiOperation({
+    summary: 'Create new multilingual data',
+    description: 'Add a new multilingual entry with text and audio for different languages'
+  })
+  @Post('/multilingual')
+  async createMultilingual(@Res() response: FastifyReply, @Body() multilingualData: any) {
+    try {
+      const newMultilingual = await this.contentService.createMultilingual(multilingualData);
+      return response.status(HttpStatus.CREATED).send({
+        status: 'success',
+        data: newMultilingual
+      });
+    } catch (error) {
+      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        status: 'error',
+        message: 'Server error - ' + error.message
+      });
+    }
   }
 }

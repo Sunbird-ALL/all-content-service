@@ -66,8 +66,31 @@ export class content {
       correctness?: {
         '50%': [string];
       };
+      syllable?: [
+        {
+          text: string,
+          audio_url: string
+        },
+      ];
+      words?: [string];
+      imageAudioMap?: [{
+        text: string,
+        multilingual_id:string,
+        audio_url: string,
+        image_url: string,
+      }];
+
     },
   ];
+  @Prop({ type: Object, required: false })
+  @IsOptional()
+  @IsObject()
+  multilingual?: {
+    [langCode: string]: {
+      text: string;
+      audio_url: string;
+    };
+  };
 
   @Prop({ type: Object, required: false })
   @IsOptional()

@@ -1067,21 +1067,23 @@ export class contentController {
           queryData.contentType,
           queryData.CEFR_level,
         );
+        console.log("Calling pagination with Batch:", Batch);
         const contentData = await this.contentService.pagination(
           0,
-          parseInt(Batch),
+          Batch,
           queryData.contentType,
           collectionId,
         );
         let contentArr = contentData['data'];
 
         if (contentArr.length === 0) {
+          console.log("Calling search fallback with Batch:", Batch);
           await this.contentService
             .search(
               queryData.tokenArr,
               queryData.language,
               queryData.contentType,
-              parseInt(Batch),
+              Batch,
               queryData.tags,
               queryData.cLevel,
               queryData.complexityLevel,
@@ -1091,6 +1093,7 @@ export class contentController {
             )
             .then((contentData) => {
               contentArr = contentData['wordsArr'];
+              console.log("Search fallback returned items:", contentArr?.length || 0);
             });
         }
 
@@ -1111,11 +1114,12 @@ export class contentController {
       }
 
       if (queryData.mechanics_id === undefined && collectionId === undefined) {
+        console.log("Calling search method with Batch:", Batch);
         contentCollection = await this.contentService.search(
           queryData.tokenArr,
           queryData.language,
           queryData.contentType,
-          parseInt(Batch),
+          Batch,
           queryData.tags,
           queryData.cLevel,
           queryData.complexityLevel,
@@ -1123,16 +1127,19 @@ export class contentController {
           queryData.level_competency,
           queryData.CEFR_level,
         );
+        console.log("Search method completed, returned items:", contentCollection?.wordsArr?.length || 0);
       } else {
+        console.log("Calling getMechanicsContentData with Batch:", Batch);
         contentCollection = await this.contentService.getMechanicsContentData(
           queryData.contentType,
           queryData.mechanics_id,
-          parseInt(Batch),
+          Batch,
           queryData.language,
           queryData.level_competency,
           queryData.tags,
           queryData.CEFR_level,
         );
+        console.log("getMechanicsContentData completed, returned items:", contentCollection?.wordsArr?.length || 0);
       }
 
       return response.status(HttpStatus.CREATED).send({

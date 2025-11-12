@@ -488,7 +488,7 @@ export class contentService {
           {
             $match: query,
           },
-          { $sample: { size: batchLimitForStartWith } },
+          { $sample: { size: Math.max(1, batchLimitForStartWith) } },
         ])
         .exec()
         .then((doc) => {
@@ -536,7 +536,7 @@ export class contentService {
           {
             $match: query,
           },
-          { $sample: { size: batchLimitForEndWith } },
+          { $sample: { size: Math.max(1, batchLimitForEndWith) } },
         ])
         .exec()
         .then((doc) => {
@@ -598,7 +598,7 @@ export class contentService {
             {
               $match: query,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -652,7 +652,7 @@ export class contentService {
             {
               $match: query,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -700,7 +700,7 @@ export class contentService {
             {
               $match: query,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -766,7 +766,7 @@ export class contentService {
             {
               $match: query,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -811,7 +811,7 @@ export class contentService {
             {
               $match: query,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -863,7 +863,7 @@ export class contentService {
             {
               $match: randomContentQuery,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -971,7 +971,7 @@ export class contentService {
                 {
                   $match: query,
                 },
-                { $sample: { size: fetchlimit } },
+                { $sample: { size: Math.max(1, fetchlimit) } },
               ])
               .exec()
               .then((doc) => {
@@ -1198,7 +1198,7 @@ export class contentService {
             {
               $match: query,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -1268,7 +1268,7 @@ export class contentService {
             {
               $match: query,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -1313,7 +1313,7 @@ export class contentService {
             {
               $match: query,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -1370,7 +1370,7 @@ export class contentService {
             {
               $match: randomContentQuery,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -1416,7 +1416,7 @@ export class contentService {
             {
               $match: query,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -1469,7 +1469,7 @@ export class contentService {
             {
               $match: randomContentQuery,
             },
-            { $sample: { size: limit - contentData.length } },
+            { $sample: { size: Math.max(1, limit - contentData.length) } },
           ])
           .exec()
           .then((doc) => {
@@ -1995,7 +1995,7 @@ export class contentService {
                     tags: { $all: tags },
                   },
                 },
-                { $sample: { size: splitLimit } }, // Fetch for the first level
+                { $sample: { size: Math.max(1, splitLimit) } }, // Fetch for the first level
               ]),
             );
           } else {
@@ -2017,7 +2017,7 @@ export class contentService {
                     }),
                   },
                 },
-                { $sample: { size: splitLimit } }, // Fetch for the first level
+                { $sample: { size: Math.max(1, splitLimit) } }, // Fetch for the first level
               ]),
             );
           }
@@ -2044,7 +2044,7 @@ export class contentService {
                     tags: { $all: tags },
                   },
                 },
-                { $sample: { size: splitLimit - handleLimit } }, // Fetch fewer items for other levels
+                { $sample: { size: Math.max(1, splitLimit - handleLimit) } }, // Fetch fewer items for other levels
               ]),
             );
           } else {
@@ -2066,7 +2066,7 @@ export class contentService {
                     }),
                   },
                 },
-                { $sample: { size: splitLimit - handleLimit } }, // Fetch fewer items for other levels
+                { $sample: { size: Math.max(1, splitLimit - handleLimit) } }, // Fetch fewer items for other levels
               ]),
             );
           }
@@ -2109,7 +2109,7 @@ export class contentService {
               tags: { $all: tags },
             },
           },
-          { $sample: { size: remainingLimit } },
+          { $sample: { size: Math.max(1, remainingLimit) } },
         ]);
       } else {
         additionalContent = await this.content.aggregate([
@@ -2126,7 +2126,7 @@ export class contentService {
               }),
             },
           },
-          { $sample: { size: remainingLimit } },
+          { $sample: { size: Math.max(1, remainingLimit) } },
         ]);
       }
 

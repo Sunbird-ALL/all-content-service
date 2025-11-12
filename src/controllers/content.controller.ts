@@ -714,11 +714,20 @@ export class contentController {
     @Query() { limit = 5 },
   ) {
     try {
-      const Batch: any = limit;
+      console.log("limit------", limit);
+     // Validate limit parameter
+      let validLimit = parseInt(String(limit));
+      console.log("validLimit---------", validLimit);
+      if (isNaN(validLimit) || validLimit <= 0) {
+        validLimit = 5;
+      }
+
+      console.log("validLimit---------", validLimit);
       const { data } = await this.contentService.getContentWord(
-        parseInt(Batch),
+        validLimit,
         language,
       );
+      console.log("data-------", JSON.stringify(data));
       return response.status(HttpStatus.OK).send({ status: 'success', data });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({

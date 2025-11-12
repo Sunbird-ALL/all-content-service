@@ -1041,7 +1041,18 @@ export class contentController {
   @Post('/getContent')
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
-      const Batch: any = queryData.limit || 5;
+      console.log("Original queryData.limit:", queryData.limit);
+      let Batch: any = queryData.limit || 5;
+      console.log("Batch before validation:", Batch);
+      
+      // Validate Batch parameter for MongoDB $sample
+      Batch = parseInt(String(Batch));
+      console.log("Batch after parseInt:", Batch);
+      if (isNaN(Batch) || Batch <= 0) {
+        console.log("Batch was invalid, setting to 5");
+        Batch = 5;
+      }
+      console.log("Final Batch value:", Batch);
 
       let contentCollection;
       let collectionId;

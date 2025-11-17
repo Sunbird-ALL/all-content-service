@@ -711,23 +711,27 @@ export class contentController {
   async getContentWord(
     @Res() response: FastifyReply,
     @Query('language') language,
-    @Query() { limit = 5 },
+    @Query('limit') limit: any,
   ) {
     try {
-      console.log("limit-----", limit);
-       // Validate limit parameter
-      let validLimit = parseInt(String(limit));
-      console.log("validLimit-----", validLimit);
-      if (isNaN(validLimit) || validLimit <= 0) {
-        validLimit = 5;
+      // Validate and parse limit parameter
+      let validLimit = 5; // default
+      if (limit !== undefined && limit !== null) {
+        const parsedLimit = parseInt(String(limit), 10);
+        if (!isNaN(parsedLimit) && parsedLimit > 0) {
+          validLimit = parsedLimit;
+        }
       }
-      console.log("validLimit-----", validLimit);
+      
       const { data } = await this.contentService.getContentWord(
         validLimit,
         language,
       );
-      console.log("data----", JSON.stringify(data));
-      return response.status(HttpStatus.OK).send({ status: 'success', data });
+      
+      // Ensure we don't return more than requested
+      const limitedData = data.slice(0, validLimit);
+      
+      return response.status(HttpStatus.OK).send({ status: 'success', data: limitedData });
     } catch (error) {
       return response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
         status: 'error',
@@ -1041,18 +1045,13 @@ export class contentController {
   @Post('/getContent')
   async getContent(@Res() response: FastifyReply, @Body() queryData: any) {
     try {
-      console.log("Original queryData.limit:", queryData.limit);
       let Batch: any = queryData.limit || 5;
-      console.log("Batch before validation:", Batch);
       
       // Validate Batch parameter for MongoDB $sample
       Batch = parseInt(String(Batch));
-      console.log("Batch after parseInt:", Batch);
       if (isNaN(Batch) || Batch <= 0) {
-        console.log("Batch was invalid, setting to 5");
         Batch = 5;
       }
-      console.log("Final Batch value:", Batch);
 
       let contentCollection;
       let collectionId;
@@ -1067,7 +1066,6 @@ export class contentController {
           queryData.contentType,
           queryData.CEFR_level,
         );
-        console.log("Calling pagination with Batch:", Batch);
         const contentData = await this.contentService.pagination(
           0,
           Batch,
@@ -1077,7 +1075,6 @@ export class contentController {
         let contentArr = contentData['data'];
 
         if (contentArr.length === 0) {
-          console.log("Calling search fallback with Batch:", Batch);
           await this.contentService
             .search(
               queryData.tokenArr,
@@ -1093,7 +1090,6 @@ export class contentController {
             )
             .then((contentData) => {
               contentArr = contentData['wordsArr'];
-              console.log("Search fallback returned items:", contentArr?.length || 0);
             });
         }
 
@@ -1110,11 +1106,12 @@ export class contentController {
           });
         }
 
+        // Ensure contentArr doesn't exceed the requested limit
+        contentArr = contentArr.slice(0, Batch);
         contentCollection = { wordsArr: contentArr };
       }
 
       if (queryData.mechanics_id === undefined && collectionId === undefined) {
-        console.log("Calling search method with Batch:", Batch);
         contentCollection = await this.contentService.search(
           queryData.tokenArr,
           queryData.language,
@@ -1127,9 +1124,7 @@ export class contentController {
           queryData.level_competency,
           queryData.CEFR_level,
         );
-        console.log("Search method completed, returned items:", contentCollection?.wordsArr?.length || 0);
       } else {
-        console.log("Calling getMechanicsContentData with Batch:", Batch);
         contentCollection = await this.contentService.getMechanicsContentData(
           queryData.contentType,
           queryData.mechanics_id,
@@ -1139,7 +1134,11 @@ export class contentController {
           queryData.tags,
           queryData.CEFR_level,
         );
-        console.log("getMechanicsContentData completed, returned items:", contentCollection?.wordsArr?.length || 0);
+      }
+
+      // Ensure wordsArr doesn't exceed the requested limit
+      if (contentCollection?.wordsArr && Array.isArray(contentCollection.wordsArr)) {
+        contentCollection.wordsArr = contentCollection.wordsArr.slice(0, Batch);
       }
 
       return response.status(HttpStatus.CREATED).send({

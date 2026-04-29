@@ -24,7 +24,7 @@ import { AuthModule } from './auth/auth.module';
 
     MongooseModule.forRootAsync({
       useFactory: async () => ({
-        uri: process.env.MONGO_URL,
+        uri: process.env.MONGODB_URL,
         maxPoolSize: parseInt(process.env.POOL_SIZE) || 10,
       }),
     }),

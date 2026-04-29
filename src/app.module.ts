@@ -24,13 +24,8 @@ import { AuthModule } from './auth/auth.module';
 
     MongooseModule.forRootAsync({
       useFactory: async () => ({
-        uri: process.env.MONGODB_URL,
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        connectionFactory: (connection) => {
-          connection.set('poolSize', process.env.POOL_SIZE);
-          return connection;
-        },
+        uri: process.env.MONGO_URL,
+        maxPoolSize: parseInt(process.env.POOL_SIZE) || 10,
       }),
     }),
 

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpStatus,
+  Inject,
   Logger,
   Param,
   Post,
@@ -12,6 +13,8 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { contentService } from '../services/content.service';
 import { CollectionService } from '../services/collection.service';
 import { FastifyReply } from 'fastify';
@@ -51,7 +54,17 @@ export class contentController {
     private readonly contentService: contentService,
     private readonly collectionService: CollectionService,
     private readonly httpService: HttpService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) { }
+
+  private buildGetContentCacheKey(queryData: any): string {
+    const tags = Array.isArray(queryData?.tags) ? [...queryData.tags].sort().join(',') : '';
+    const tokenArr = Array.isArray(queryData?.tokenArr) ? [...queryData.tokenArr].sort().join(',') : '';
+    const complexityLevel = Array.isArray(queryData?.complexityLevel) ? [...queryData.complexityLevel].sort().join(',') : '';
+    const levelCompetency = Array.isArray(queryData?.level_competency) ? [...queryData.level_competency].sort().join(',') : '';
+    const cefrLevel = Array.isArray(queryData?.CEFR_level) ? [...queryData.CEFR_level].sort().join(',') : (queryData?.CEFR_level || '');
+    return `getContent:${queryData?.language}:${queryData?.contentType}:${queryData?.cLevel || ''}:${complexityLevel}:${tags}:${tokenArr}:${queryData?.limit || 5}:${cefrLevel}:${levelCompetency}`;
+  }
 
   @ApiOperation({
     summary: 'Create new content',
@@ -976,6 +989,22 @@ export class contentController {
       let contentCollection;
       let collectionId;
 
+      // Return cached response for simple search requests (not story_mode, mechanics, or multilingual)
+      const isCacheable =
+        queryData.story_mode !== 'true' &&
+        queryData.mechanics_id === undefined &&
+        queryData.multilingual !== 'true' &&
+        queryData.multilingual !== true;
+
+      if (isCacheable) {
+        const cacheKey = this.buildGetContentCacheKey(queryData);
+        const cached = await this.cacheManager.get<any>(cacheKey);
+        if (cached) {
+          this.logger.debug(JSON.stringify({ api: 'content.getContent', stage: 'cache-hit', cacheKey }));
+          return response.status(HttpStatus.CREATED).send({ status: 'success', data: cached });
+        }
+      }
+
       const tags = queryData.language === 'en' ? en_config.tags : common_config.tags;
             // Guard and log tags evaluation
       const incomingTags: string[] = Array.isArray(queryData?.tags) ? queryData.tags : [];
@@ -1254,6 +1283,13 @@ export class contentController {
             words: Array.isArray(contentCollection?.wordsArr) ? contentCollection.wordsArr.length : null,
           }),
         );
+      }
+
+      if (isCacheable && contentCollection) {
+        const cacheKey = this.buildGetContentCacheKey(queryData);
+        // 2-minute TTL for getContent — shorter than pool cache since queries are more specific
+        await this.cacheManager.set(cacheKey, contentCollection, 2 * 60 * 1000);
+        this.logger.debug(JSON.stringify({ api: 'content.getContent', stage: 'cache-set', cacheKey }));
       }
 
       return response.status(HttpStatus.CREATED).send({

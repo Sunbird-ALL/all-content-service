@@ -12,9 +12,15 @@ import { CollectionController } from './controllers/collection.controller';
 import { CollectionService } from './services/collection.service';
 import { HttpModule } from '@nestjs/axios';
 import { AuthModule } from './auth/auth.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 5 * 60 * 1000, // 5 minutes in ms
+      max: 1000,           // max 1000 entries in memory
+    }),
     HttpModule.register({
       timeout: 5000,
     }),

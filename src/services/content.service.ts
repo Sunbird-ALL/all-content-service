@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { content, contentDocument } from '../schemas/content.schema';
@@ -6,13 +6,18 @@ import { multilingual, multilingualDocument } from '../schemas/multilingual.sche
 import { HttpService } from '@nestjs/axios';
 import en_config from 'src/config/language/en';
 import common_config from 'src/config/commonConfig';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class contentService {
+  private readonly CONTENT_POOL_SIZE = 50;
+
   constructor(
     @InjectModel(content.name) private content: Model<contentDocument>,
     @InjectModel(multilingual.name) private multilingual: Model<multilingualDocument>,
     private readonly httpService: HttpService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) { }
 
   async create(content: content): Promise<content> {
@@ -107,64 +112,61 @@ export class contentService {
   }
 
   async getContentWord(limit = 5, language = 'ta', includeMultilingual = false) {
-    const pipeline: any[] = [
-      {
-        $match: {
-          contentType: 'Word',
-          language: language,
-        },
-      },
-      { $sample: { size: limit } },
-    ];
+    const cacheKey = `pool:Word:${language}`;
+    let pool = await this.cacheManager.get<any[]>(cacheKey);
 
-    // Multilingual check
-    if (!includeMultilingual) {
-      pipeline.push({
-        $project: {
-          multilingual: 0,
-        },
-      });
+    if (!pool) {
+      pool = await this.content.aggregate([
+        { $match: { contentType: 'Word', language: language } },
+        { $sample: { size: this.CONTENT_POOL_SIZE } },
+      ]);
+      await this.cacheManager.set(cacheKey, pool);
     }
 
-    const data = await this.content.aggregate(pipeline);
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    let data = shuffled.slice(0, Math.min(limit, shuffled.length));
 
-    return {
-      data: data,
-      status: 200,
-    };
+    if (!includeMultilingual) {
+      data = data.map(({ multilingual: _ml, ...rest }) => rest);
+    }
+
+    return { data, status: 200 };
   }
 
-
   async getContentSentence(limit = 5, language = 'ta') {
-    const data = await this.content.aggregate([
-      {
-        $match: {
-          contentType: 'Sentence',
-          language: language,
-        },
-      },
-      { $sample: { size: limit } },
-    ]);
-    return {
-      data: data,
-      status: 200,
-    };
+    const cacheKey = `pool:Sentence:${language}`;
+    let pool = await this.cacheManager.get<any[]>(cacheKey);
+
+    if (!pool) {
+      pool = await this.content.aggregate([
+        { $match: { contentType: 'Sentence', language: language } },
+        { $sample: { size: this.CONTENT_POOL_SIZE } },
+      ]);
+      await this.cacheManager.set(cacheKey, pool);
+    }
+
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    const data = shuffled.slice(0, Math.min(limit, shuffled.length));
+
+    return { data, status: 200 };
   }
 
   async getContentParagraph(limit = 5, language = 'ta') {
-    const data = await this.content.aggregate([
-      {
-        $match: {
-          contentType: 'Paragraph',
-          language: language,
-        },
-      },
-      { $sample: { size: limit } },
-    ]);
-    return {
-      data: data,
-      status: 200,
-    };
+    const cacheKey = `pool:Paragraph:${language}`;
+    let pool = await this.cacheManager.get<any[]>(cacheKey);
+
+    if (!pool) {
+      pool = await this.content.aggregate([
+        { $match: { contentType: 'Paragraph', language: language } },
+        { $sample: { size: this.CONTENT_POOL_SIZE } },
+      ]);
+      await this.cacheManager.set(cacheKey, pool);
+    }
+
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    const data = shuffled.slice(0, Math.min(limit, shuffled.length));
+
+    return { data, status: 200 };
   }
 
   async getContentLevelData(

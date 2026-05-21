@@ -994,17 +994,6 @@ export class contentController {
       // story_mode=true fetches a personalized collection per user session — not cacheable
       const isCacheable = queryData.story_mode !== 'true';
 
-      if (isCacheable) {
-        const cacheKey = this.buildGetContentCacheKey(queryData);
-        this.logger.log(JSON.stringify({ api: 'content.getContent', stage: 'cache-check', cacheKey }));
-        const cached = await this.cacheManager.get<any>(cacheKey);
-        if (cached) {
-          this.logger.log(JSON.stringify({ api: 'content.getContent', stage: 'cache-hit', cacheKey }));
-          return response.status(HttpStatus.CREATED).send({ status: 'success', data: cached });
-        }
-        this.logger.log(JSON.stringify({ api: 'content.getContent', stage: 'cache-miss', cacheKey }));
-      }
-
       const tags = queryData.language === 'en' ? en_config.tags : common_config.tags;
             // Guard and log tags evaluation
       const incomingTags: string[] = Array.isArray(queryData?.tags) ? queryData.tags : [];
@@ -1028,6 +1017,20 @@ export class contentController {
             stage: 'tags-reset-applied',
           }),
         );
+      }
+
+      // Build cache key AFTER tags-reset so the key matches the actual query that will run.
+      // Both the cache-check and cache-set reuse this same variable.
+      let cacheKey: string | null = null;
+      if (isCacheable) {
+        cacheKey = this.buildGetContentCacheKey(queryData);
+        this.logger.log(JSON.stringify({ api: 'content.getContent', stage: 'cache-check', cacheKey }));
+        const cached = await this.cacheManager.get<any>(cacheKey);
+        if (cached) {
+          this.logger.log(JSON.stringify({ api: 'content.getContent', stage: 'cache-hit', cacheKey }));
+          return response.status(HttpStatus.CREATED).send({ status: 'success', data: cached });
+        }
+        this.logger.log(JSON.stringify({ api: 'content.getContent', stage: 'cache-miss', cacheKey }));
       }
 
       if (
@@ -1285,11 +1288,10 @@ export class contentController {
         );
       }
 
-      if (isCacheable && contentCollection) {
-        const cacheKey = this.buildGetContentCacheKey(queryData);
+      if (cacheKey && contentCollection) {
         // 2-minute TTL for getContent — shorter than pool cache since queries are more specific
         await this.cacheManager.set(cacheKey, contentCollection, 2 * 60 * 1000);
-        this.logger.debug(JSON.stringify({ api: 'content.getContent', stage: 'cache-set', cacheKey }));
+        this.logger.log(JSON.stringify({ api: 'content.getContent', stage: 'cache-set', cacheKey }));
       }
 
       return response.status(HttpStatus.CREATED).send({

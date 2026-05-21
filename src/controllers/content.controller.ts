@@ -996,11 +996,13 @@ export class contentController {
 
       if (isCacheable) {
         const cacheKey = this.buildGetContentCacheKey(queryData);
+        this.logger.log(JSON.stringify({ api: 'content.getContent', stage: 'cache-check', cacheKey }));
         const cached = await this.cacheManager.get<any>(cacheKey);
         if (cached) {
-          this.logger.debug(JSON.stringify({ api: 'content.getContent', stage: 'cache-hit', cacheKey }));
+          this.logger.log(JSON.stringify({ api: 'content.getContent', stage: 'cache-hit', cacheKey }));
           return response.status(HttpStatus.CREATED).send({ status: 'success', data: cached });
         }
+        this.logger.log(JSON.stringify({ api: 'content.getContent', stage: 'cache-miss', cacheKey }));
       }
 
       const tags = queryData.language === 'en' ? en_config.tags : common_config.tags;

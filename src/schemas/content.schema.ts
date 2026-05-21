@@ -162,3 +162,21 @@ contentSchema.index({
   contentType: 1,
   'contentSourceData.language': 1,
 });
+
+// Fast lookup for getContentWord/Sentence/Paragraph using top-level language field
+contentSchema.index({ contentType: 1, language: 1 });
+
+// Tag-based filtering used across search() and getContent
+contentSchema.index({ tags: 1, contentType: 1, language: 1 });
+
+// Competency and CEFR filtering used in getMechanicsContentData and search()
+contentSchema.index({ 'level_complexity.level_competency': 1 });
+contentSchema.index({ 'level_complexity.CEFR_level': 1 });
+contentSchema.index({
+  contentType: 1,
+  language: 1,
+  'level_complexity.level_competency': 1,
+});
+
+// Mechanics filtering — sparse because not all documents have mechanics_data
+contentSchema.index({ 'mechanics_data.mechanics_id': 1 }, { sparse: true });

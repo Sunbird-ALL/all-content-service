@@ -630,15 +630,12 @@ export class contentController {
       const includeMultilingual = multilingual === 'true';
 
       const { data } = await this.contentService.getContentWord(
-        limit,
+        validLimit,
         language,
         includeMultilingual,
       );
-      
-       // Ensure we don't return more than requested
-      const limitedData = data.slice(0, validLimit);
 
-      return response.status(HttpStatus.OK).send({ status: 'success', data: limitedData });
+      return response.status(HttpStatus.OK).send({ status: 'success', data });
     } catch (error) {
       throw error;
     }

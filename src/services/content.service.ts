@@ -111,11 +111,7 @@ export class contentService {
       {
         $match: {
           contentType: 'Word',
-          contentSourceData: {
-            $elemMatch: {
-              language: language,
-            },
-          },
+          language: language,
         },
       },
       { $sample: { size: limit } },
@@ -144,11 +140,7 @@ export class contentService {
       {
         $match: {
           contentType: 'Sentence',
-          contentSourceData: {
-            $elemMatch: {
-              language: language,
-            },
-          },
+          language: language,
         },
       },
       { $sample: { size: limit } },
@@ -164,11 +156,7 @@ export class contentService {
       {
         $match: {
           contentType: 'Paragraph',
-          contentSourceData: {
-            $elemMatch: {
-              language: language,
-            },
-          },
+          language: language,
         },
       },
       { $sample: { size: limit } },

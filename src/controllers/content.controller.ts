@@ -63,7 +63,9 @@ export class contentController {
     const complexityLevel = Array.isArray(queryData?.complexityLevel) ? [...queryData.complexityLevel].sort().join(',') : '';
     const levelCompetency = Array.isArray(queryData?.level_competency) ? [...queryData.level_competency].sort().join(',') : '';
     const cefrLevel = Array.isArray(queryData?.CEFR_level) ? [...queryData.CEFR_level].sort().join(',') : (queryData?.CEFR_level || '');
-    return `getContent:${queryData?.language}:${queryData?.contentType}:${queryData?.cLevel || ''}:${complexityLevel}:${tags}:${tokenArr}:${queryData?.limit || 5}:${cefrLevel}:${levelCompetency}`;
+    const mechanicsId = queryData?.mechanics_id || '';
+    const multilingual = queryData?.multilingual === 'true' || queryData?.multilingual === true ? '1' : '0';
+    return `getContent:${queryData?.language}:${queryData?.contentType}:${queryData?.cLevel || ''}:${complexityLevel}:${tags}:${tokenArr}:${queryData?.limit || 5}:${cefrLevel}:${levelCompetency}:${mechanicsId}:${multilingual}`;
   }
 
   @ApiOperation({
@@ -989,12 +991,8 @@ export class contentController {
       let contentCollection;
       let collectionId;
 
-      // Return cached response for simple search requests (not story_mode, mechanics, or multilingual)
-      const isCacheable =
-        queryData.story_mode !== 'true' &&
-        queryData.mechanics_id === undefined &&
-        queryData.multilingual !== 'true' &&
-        queryData.multilingual !== true;
+      // story_mode=true fetches a personalized collection per user session — not cacheable
+      const isCacheable = queryData.story_mode !== 'true';
 
       if (isCacheable) {
         const cacheKey = this.buildGetContentCacheKey(queryData);

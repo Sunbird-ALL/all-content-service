@@ -46,7 +46,7 @@ describe('authHelper', () => {
 
       const result = getEncryptionKey();
       expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBe(32);
+      expect(result).toHaveLength(32);
     });
 
     it('should handle empty JOSE_SECRET fallback when neither is set', () => {
@@ -55,7 +55,7 @@ describe('authHelper', () => {
 
       const result = getEncryptionKey();
       expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBe(32);
+      expect(result).toHaveLength(32);
     });
   });
 

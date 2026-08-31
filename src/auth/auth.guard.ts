@@ -47,16 +47,16 @@ export class JwtAuthGuard implements CanActivate {
       const verifiedToken = await jose.jwtVerify(jwtSignedToken, signinKey);
 
       // Step 3: Validate expiration and virtual_id
-      const { exp } = verifiedToken.payload;
-      const virtualId =
-        (verifiedToken.payload as any)?.virtual_id ??
-        (verifiedToken.payload as any)?.virtualId;
+      const { exp, virtualId } = verifiedToken.payload;
 
       if (!exp || exp <= Math.floor(Date.now() / 1000)) {
         throw new UnauthorizedException('Token expired');
       }
 
-      if (!virtualId) {
+      if (
+        !virtualId ||
+        (typeof virtualId !== 'string' && typeof virtualId !== 'number')
+      ) {
         throw new UnauthorizedException('Missing virtual_id in token payload');
       }
 

@@ -30,8 +30,8 @@ describe('authHelper', () => {
   });
 
   describe('getEncryptionKey', () => {
-    it('should decode base64url if JWT_ENCRYPTION_PRIVATE_KEY is set', () => {
-      process.env.JWT_ENCRYPTION_PRIVATE_KEY = 'base64-encoded-key';
+    it('should decode base64url if JOSE_ENCRYPTION_PRIVATE_KEY is set', () => {
+      process.env.JOSE_ENCRYPTION_PRIVATE_KEY = 'base64-encoded-key';
       const mockDecoded = new Uint8Array([1, 2, 3]);
       (jose.base64url.decode as jest.Mock).mockReturnValue(mockDecoded);
 
@@ -40,8 +40,8 @@ describe('authHelper', () => {
       expect(result).toBe(mockDecoded);
     });
 
-    it('should fallback to sha256 hash of JOSE_SECRET if JWT_ENCRYPTION_PRIVATE_KEY is not set', () => {
-      delete process.env.JWT_ENCRYPTION_PRIVATE_KEY;
+    it('should fallback to sha256 hash of JOSE_SECRET if JOSE_SIGNIN_PRIVATE_KEY is not set', () => {
+      delete process.env.JOSE_SIGNIN_PRIVATE_KEY;
       process.env.JOSE_SECRET = 'my-secret';
 
       const result = getEncryptionKey();
@@ -50,7 +50,7 @@ describe('authHelper', () => {
     });
 
     it('should handle empty JOSE_SECRET fallback when neither is set', () => {
-      delete process.env.JWT_ENCRYPTION_PRIVATE_KEY;
+      delete process.env.JOSE_SIGNIN_PRIVATE_KEY;
       delete process.env.JOSE_SECRET;
 
       const result = getEncryptionKey();
@@ -60,14 +60,14 @@ describe('authHelper', () => {
   });
 
   describe('getSigningKey', () => {
-    it('should encode JWT_SIGNIN_PRIVATE_KEY into Uint8Array', () => {
-      process.env.JWT_SIGNIN_PRIVATE_KEY = 'secret-signin-key';
+    it('should encode JOSE_SIGNIN_PRIVATE_KEY into Uint8Array', () => {
+      process.env.JOSE_SIGNIN_PRIVATE_KEY = 'secret-signin-key';
       const result = getSigningKey();
       expect(result).toEqual(new TextEncoder().encode('secret-signin-key'));
     });
 
-    it('should handle missing JWT_SIGNIN_PRIVATE_KEY', () => {
-      delete process.env.JWT_SIGNIN_PRIVATE_KEY;
+    it('should handle missing JOSE_SIGNIN_PRIVATE_KEY', () => {
+      delete process.env.JOSE_SIGNIN_PRIVATE_KEY;
       const result = getSigningKey();
       expect(result).toEqual(new TextEncoder().encode(''));
     });

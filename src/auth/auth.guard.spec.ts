@@ -55,7 +55,7 @@ describe('JwtAuthGuard', () => {
 
       const mockVerifiedToken = {
         payload: {
-          virtual_id: 'user-123',
+          virtualId: 'user-123',
           exp: Math.floor(Date.now() / 1000) + 3600,
           email: 'test@example.com',
         },
@@ -173,7 +173,7 @@ describe('JwtAuthGuard', () => {
 
       const mockVerifiedToken = {
         payload: {
-          virtual_id: 'user-123',
+          virtualId: 'user-123',
           exp: Math.floor(Date.now() / 1000) - 100,
         },
       };
@@ -216,7 +216,7 @@ describe('JwtAuthGuard', () => {
 
       const mockVerifiedToken = {
         payload: {
-          virtual_id: 'user-123',
+          virtualId: 'user-123',
           exp: Math.floor(Date.now() / 1000) + 3600,
         },
       };

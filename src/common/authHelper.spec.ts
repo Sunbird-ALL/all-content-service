@@ -17,6 +17,42 @@ jest.mock('jose', () => ({
   jwtVerify: jest.fn(),
 }));
 
+function mockHttpRequest(
+  module: typeof http | typeof https,
+  responsePayload?: any,
+  error?: Error,
+) {
+  const mockReq = Object.assign(new EventEmitter(), {
+    write: jest.fn(),
+    end: jest.fn(),
+  });
+  const mockRes = new EventEmitter();
+
+  const spy = jest
+    .spyOn(module, 'request')
+    .mockImplementation((_url: any, _options: any, callback?: any) => {
+      if (error) {
+        setTimeout(() => mockReq.emit('error', error), 5);
+      } else {
+        if (callback) callback(mockRes);
+        setTimeout(() => {
+          if (responsePayload !== undefined) {
+            mockRes.emit(
+              'data',
+              typeof responsePayload === 'string'
+                ? responsePayload
+                : JSON.stringify(responsePayload),
+            );
+          }
+          mockRes.emit('end');
+        }, 5);
+      }
+      return mockReq as any;
+    });
+
+  return { spy, mockReq, mockRes };
+}
+
 describe('authHelper', () => {
   const originalEnv = process.env;
 
@@ -75,95 +111,39 @@ describe('authHelper', () => {
 
   describe('postJson', () => {
     it('should perform http POST request and resolve parsed response', async () => {
-      const mockReq = Object.assign(new EventEmitter(), {
-        write: jest.fn(),
-        end: jest.fn(),
-      });
-      const mockRes = new EventEmitter();
-
-      const requestSpy = jest
-        .spyOn(http, 'request')
-        .mockImplementation((_url: any, _options: any, callback?: any) => {
-          if (callback) callback(mockRes);
-          return mockReq as any;
-        });
-
-      const promise = postJson('http://example.com/api', { foo: 'bar' });
-
-      mockRes.emit('data', JSON.stringify({ success: true }));
-      mockRes.emit('end');
-
-      const result = await promise;
+      const { spy, mockReq } = mockHttpRequest(http, { success: true });
+      const result = await postJson('http://example.com/api', { foo: 'bar' });
       expect(result).toEqual({ success: true });
       expect(mockReq.write).toHaveBeenCalled();
       expect(mockReq.end).toHaveBeenCalled();
-      requestSpy.mockRestore();
+      spy.mockRestore();
     });
 
     it('should use https module when url protocol is https', async () => {
-      const mockReq = Object.assign(new EventEmitter(), {
-        write: jest.fn(),
-        end: jest.fn(),
-      });
-      const mockRes = new EventEmitter();
-
-      const requestSpy = jest
-        .spyOn(https, 'request')
-        .mockImplementation((_url: any, _options: any, callback?: any) => {
-          if (callback) callback(mockRes);
-          return mockReq as any;
-        });
-
-      const promise = postJson('https://example.com/api', { foo: 'bar' });
-
-      mockRes.emit('data', JSON.stringify({ success: true }));
-      mockRes.emit('end');
-
-      const result = await promise;
+      const { spy } = mockHttpRequest(https, { success: true });
+      const result = await postJson('https://example.com/api', { foo: 'bar' });
       expect(result).toEqual({ success: true });
-      requestSpy.mockRestore();
+      spy.mockRestore();
     });
 
     it('should reject when response is invalid JSON', async () => {
-      const mockReq = Object.assign(new EventEmitter(), {
-        write: jest.fn(),
-        end: jest.fn(),
-      });
-      const mockRes = new EventEmitter();
-
-      const requestSpy = jest
-        .spyOn(http, 'request')
-        .mockImplementation((_url: any, _options: any, callback?: any) => {
-          if (callback) callback(mockRes);
-          return mockReq as any;
-        });
-
-      const promise = postJson('http://example.com/api', { foo: 'bar' });
-
-      mockRes.emit('data', 'invalid-json');
-      mockRes.emit('end');
-
-      await expect(promise).rejects.toThrow();
-      requestSpy.mockRestore();
+      const { spy } = mockHttpRequest(http, 'invalid-json');
+      await expect(
+        postJson('http://example.com/api', { foo: 'bar' }),
+      ).rejects.toThrow();
+      spy.mockRestore();
     });
 
     it('should reject on request network error', async () => {
-      const mockReq = Object.assign(new EventEmitter(), {
-        write: jest.fn(),
-        end: jest.fn(),
-      });
-
-      const requestSpy = jest.spyOn(http, 'request').mockImplementation(() => {
-        setTimeout(() => {
-          mockReq.emit('error', new Error('Connection refused'));
-        }, 5);
-        return mockReq as any;
-      });
-
+      const { spy } = mockHttpRequest(
+        http,
+        undefined,
+        new Error('Connection refused'),
+      );
       await expect(
         postJson('http://example.com/api', { foo: 'bar' }),
       ).rejects.toThrow('Connection refused');
-      requestSpy.mockRestore();
+      spy.mockRestore();
     });
 
     it('should reject on invalid URL string', async () => {
@@ -177,129 +157,54 @@ describe('authHelper', () => {
         'http://points-lesson-tracking:3009/api/virtualId/tokenStatus';
       delete process.env.AXL_LOGIN_SERVICE_URL;
 
-      const mockReq = Object.assign(new EventEmitter(), {
-        write: jest.fn(),
-        end: jest.fn(),
-      });
-      const mockRes = new EventEmitter();
-
-      const requestSpy = jest
-        .spyOn(http, 'request')
-        .mockImplementation((_url: any, _options: any, callback?: any) => {
-          if (callback) callback(mockRes);
-          return mockReq as any;
-        });
-
-      const promise = checkTokenStatus('12345', 'mock-token');
-
-      mockRes.emit('data', JSON.stringify({ result: { isActive: true } }));
-      mockRes.emit('end');
-
-      const result = await promise;
+      const { spy } = mockHttpRequest(http, { result: { isActive: true } });
+      const result = await checkTokenStatus('12345', 'mock-token');
       expect(result).toEqual({ isActive: true });
-      requestSpy.mockRestore();
+      spy.mockRestore();
     });
 
     it('should return isActive true when orchestration service returns data.result.isActive = true', async () => {
       process.env.ALL_ORC_SERVICE_URL =
         'http://points-lesson-tracking:3009/api/virtualId/tokenStatus';
 
-      const mockReq = Object.assign(new EventEmitter(), {
-        write: jest.fn(),
-        end: jest.fn(),
+      const { spy } = mockHttpRequest(http, {
+        data: { result: { isActive: true } },
       });
-      const mockRes = new EventEmitter();
-
-      const requestSpy = jest
-        .spyOn(http, 'request')
-        .mockImplementation((_url: any, _options: any, callback?: any) => {
-          if (callback) callback(mockRes);
-          return mockReq as any;
-        });
-
-      const promise = checkTokenStatus('12345', 'mock-token');
-
-      mockRes.emit(
-        'data',
-        JSON.stringify({ data: { result: { isActive: true } } }),
-      );
-      mockRes.emit('end');
-
-      const result = await promise;
+      const result = await checkTokenStatus('12345', 'mock-token');
       expect(result).toEqual({ isActive: true });
-      requestSpy.mockRestore();
+      spy.mockRestore();
     });
 
     it('should return isActive true when login service returns matching token', async () => {
       delete process.env.ALL_ORC_SERVICE_URL;
       process.env.AXL_LOGIN_SERVICE_URL = 'http://axl-login-service:8000';
 
-      const mockReq = Object.assign(new EventEmitter(), {
-        write: jest.fn(),
-        end: jest.fn(),
-      });
-      const mockRes = new EventEmitter();
-
-      const requestSpy = jest
-        .spyOn(http, 'request')
-        .mockImplementation((_url: any, _options: any, callback?: any) => {
-          if (callback) callback(mockRes);
-          return mockReq as any;
-        });
-
-      const promise = checkTokenStatus('12345', 'target-token');
-
-      mockRes.emit(
-        'data',
-        JSON.stringify({
-          responseObj: {
-            responseDataParams: {
-              data: {
-                token: 'target-token',
-              },
+      const { spy } = mockHttpRequest(http, {
+        responseObj: {
+          responseDataParams: {
+            data: {
+              token: 'target-token',
             },
           },
-        }),
-      );
-      mockRes.emit('end');
-
-      const result = await promise;
+        },
+      });
+      const result = await checkTokenStatus('12345', 'target-token');
       expect(result).toEqual({ isActive: true });
-      requestSpy.mockRestore();
+      spy.mockRestore();
     });
 
     it('should return isActive false when login service returns mismatched token', async () => {
       delete process.env.ALL_ORC_SERVICE_URL;
       process.env.AXL_LOGIN_SERVICE_URL = 'http://axl-login-service:8000';
 
-      const mockReq = Object.assign(new EventEmitter(), {
-        write: jest.fn(),
-        end: jest.fn(),
+      const { spy } = mockHttpRequest(http, {
+        data: {
+          token: 'target-token',
+        },
       });
-      const mockRes = new EventEmitter();
-
-      const requestSpy = jest
-        .spyOn(http, 'request')
-        .mockImplementation((_url: any, _options: any, callback?: any) => {
-          if (callback) callback(mockRes);
-          return mockReq as any;
-        });
-
-      const promise = checkTokenStatus('12345', 'different-token');
-
-      mockRes.emit(
-        'data',
-        JSON.stringify({
-          data: {
-            token: 'target-token',
-          },
-        }),
-      );
-      mockRes.emit('end');
-
-      const result = await promise;
+      const result = await checkTokenStatus('12345', 'different-token');
       expect(result).toEqual({ isActive: false });
-      requestSpy.mockRestore();
+      spy.mockRestore();
     });
 
     it('should fallback gracefully to login service if orchestration service throws error', async () => {
@@ -347,20 +252,14 @@ describe('authHelper', () => {
         'http://points-lesson-tracking:3009/api/virtualId/tokenStatus';
       process.env.AXL_LOGIN_SERVICE_URL = 'http://axl-login-service:8000';
 
-      const requestSpy = jest.spyOn(http, 'request').mockImplementation(() => {
-        const mockReq = Object.assign(new EventEmitter(), {
-          write: jest.fn(),
-          end: jest.fn(),
-        });
-        setTimeout(() => {
-          mockReq.emit('error', new Error('Network error'));
-        }, 5);
-        return mockReq as any;
-      });
-
+      const { spy } = mockHttpRequest(
+        http,
+        undefined,
+        new Error('Network error'),
+      );
       const result = await checkTokenStatus('12345', 'my-token');
       expect(result).toEqual({ isActive: false });
-      requestSpy.mockRestore();
+      spy.mockRestore();
     });
 
     it('should return isActive false if no URLs are configured', async () => {

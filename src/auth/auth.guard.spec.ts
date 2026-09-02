@@ -1,24 +1,14 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import axios from 'axios';
 import * as jose from 'jose';
-import { createHash } from 'crypto';
 import { JwtAuthGuard } from './auth.guard';
+import * as authHelper from '../common/authHelper';
 
-// Mock external dependencies
-jest.mock('axios');
 jest.mock('jose');
+jest.mock('../common/authHelper');
 
-const mockAxios = axios as jest.Mocked<typeof axios>;
 const mockJose = jose as jest.Mocked<typeof jose>;
-
-// Mock createHash
-const mockCreateHash = {
-  update: jest.fn().mockReturnThis(),
-  digest: jest.fn().mockReturnValue(new Uint8Array(32)),
-};
-jest.spyOn(require('crypto'), 'createHash').mockReturnValue(mockCreateHash as any);
+const mockAuthHelper = authHelper as jest.Mocked<typeof authHelper>;
 
 describe('JwtAuthGuard', () => {
   let guard: JwtAuthGuard;
@@ -37,21 +27,17 @@ describe('JwtAuthGuard', () => {
     }),
   } as unknown as ExecutionContext;
 
-  beforeEach(async () => {
-    // Reset environment variables
-    process.env.JOSE_SECRET = 'test-secret';
-    process.env.JWT_SIGNIN_PRIVATE_KEY = 'test-private-key';
+  beforeEach(() => {
+    mockAuthHelper.getEncryptionKey.mockReturnValue(new Uint8Array(32));
+    mockAuthHelper.getSigningKey.mockReturnValue(new Uint8Array(32));
+    mockAuthHelper.checkTokenStatus.mockResolvedValue({ isActive: true });
 
-    // Create mock JwtService
     jwtService = {
       sign: jest.fn(),
       verify: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<JwtService>;
 
-    // Create guard instance directly
     guard = new JwtAuthGuard(jwtService);
-
-    // Reset all mocks
     jest.clearAllMocks();
   });
 
@@ -61,37 +47,52 @@ describe('JwtAuthGuard', () => {
 
   describe('canActivate', () => {
     it('should successfully authenticate a valid token', async () => {
-      // Mock successful token decryption
       const mockDecryptedToken = {
         payload: {
           jwtSignedToken: 'signed-jwt-token',
         },
       };
 
-      // Mock successful JWT verification
       const mockVerifiedToken = {
         payload: {
-          virtual_id: 'user-123',
+          virtualId: 'user-123',
+          exp: Math.floor(Date.now() / 1000) + 3600,
           email: 'test@example.com',
         },
       };
 
-      // Mock successful token status check
-      mockAxios.post.mockResolvedValue({
-        data: {
-          result: {
-            token: 'valid-token',
-          },
-        },
-      });
-
       mockJose.jwtDecrypt.mockResolvedValue(mockDecryptedToken as any);
       mockJose.jwtVerify.mockResolvedValue(mockVerifiedToken as any);
+      mockAuthHelper.checkTokenStatus.mockResolvedValue({ isActive: true });
 
       const result = await guard.canActivate(mockContext);
 
       expect(result).toBe(true);
-      expect(mockRequest.user).toEqual(mockVerifiedToken.payload);
+      expect((mockRequest as any).user).toEqual(mockVerifiedToken.payload);
+    });
+
+    it('should authenticate with virtualId field in payload', async () => {
+      const mockDecryptedToken = {
+        payload: {
+          jwtSignedToken: 'signed-jwt-token',
+        },
+      };
+
+      const mockVerifiedToken = {
+        payload: {
+          virtualId: 'user-456',
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        },
+      };
+
+      mockJose.jwtDecrypt.mockResolvedValue(mockDecryptedToken as any);
+      mockJose.jwtVerify.mockResolvedValue(mockVerifiedToken as any);
+      mockAuthHelper.checkTokenStatus.mockResolvedValue({ isActive: true });
+
+      const result = await guard.canActivate(mockContext);
+
+      expect(result).toBe(true);
+      expect((mockRequest as any).user).toEqual(mockVerifiedToken.payload);
     });
 
     it('should throw UnauthorizedException when authorization header is missing', async () => {
@@ -105,27 +106,24 @@ describe('JwtAuthGuard', () => {
       } as unknown as ExecutionContext;
 
       await expect(guard.canActivate(contextWithoutAuth)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(guard.canActivate(contextWithoutAuth)).rejects.toThrow(
-        'Authorization header missing',
+        new UnauthorizedException('Authorization header missing'),
       );
     });
 
-    it('should throw UnauthorizedException when token format is invalid', async () => {
-      const requestWithInvalidToken = {
+    it('should throw UnauthorizedException when authorization header format is not Bearer <token>', async () => {
+      const requestWithInvalidFormat = {
         headers: {
-          authorization: 'InvalidFormat token',
+          authorization: 'Basic valid-token',
         },
       };
-      const contextWithInvalidToken = {
+      const contextWithInvalidFormat = {
         switchToHttp: jest.fn().mockReturnValue({
-          getRequest: jest.fn().mockReturnValue(requestWithInvalidToken),
+          getRequest: jest.fn().mockReturnValue(requestWithInvalidFormat),
         }),
       } as unknown as ExecutionContext;
 
-      await expect(guard.canActivate(contextWithInvalidToken)).rejects.toThrow(
-        UnauthorizedException,
+      await expect(guard.canActivate(contextWithInvalidFormat)).rejects.toThrow(
+        new UnauthorizedException('Invalid authorization header format'),
       );
     });
 
@@ -133,24 +131,21 @@ describe('JwtAuthGuard', () => {
       mockJose.jwtDecrypt.mockRejectedValue(new Error('Decryption failed'));
 
       await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        'Invalid or expired token',
+        new UnauthorizedException('Invalid or expired token'),
       );
     });
 
     it('should throw UnauthorizedException when jwtSignedToken is missing in payload', async () => {
       const mockDecryptedToken = {
-        payload: {
-          // Missing jwtSignedToken
-        },
+        payload: {},
       };
 
       mockJose.jwtDecrypt.mockResolvedValue(mockDecryptedToken as any);
 
       await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        UnauthorizedException,
+        new UnauthorizedException(
+          'jwtSignedToken not found in decrypted payload',
+        ),
       );
     });
 
@@ -165,11 +160,11 @@ describe('JwtAuthGuard', () => {
       mockJose.jwtVerify.mockRejectedValue(new Error('Verification failed'));
 
       await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        UnauthorizedException,
+        new UnauthorizedException('Invalid or expired token'),
       );
     });
 
-    it('should throw UnauthorizedException when user is logged out (token mismatch)', async () => {
+    it('should throw UnauthorizedException when token is expired', async () => {
       const mockDecryptedToken = {
         payload: {
           jwtSignedToken: 'signed-jwt-token',
@@ -178,31 +173,20 @@ describe('JwtAuthGuard', () => {
 
       const mockVerifiedToken = {
         payload: {
-          virtual_id: 'user-123',
+          virtualId: 'user-123',
+          exp: Math.floor(Date.now() / 1000) - 100,
         },
       };
-
-      // Mock token status check returning different token
-      mockAxios.post.mockResolvedValue({
-        data: {
-          result: {
-            token: 'different-token',
-          },
-        },
-      });
 
       mockJose.jwtDecrypt.mockResolvedValue(mockDecryptedToken as any);
       mockJose.jwtVerify.mockResolvedValue(mockVerifiedToken as any);
 
       await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        'Invalid or expired token',
+        new UnauthorizedException('Token expired'),
       );
     });
 
-    it('should throw UnauthorizedException when token status returns null token', async () => {
+    it('should throw UnauthorizedException when virtual_id is missing', async () => {
       const mockDecryptedToken = {
         payload: {
           jwtSignedToken: 'signed-jwt-token',
@@ -211,147 +195,53 @@ describe('JwtAuthGuard', () => {
 
       const mockVerifiedToken = {
         payload: {
-          virtual_id: 'user-123',
+          exp: Math.floor(Date.now() / 1000) + 3600,
         },
       };
-
-      // Mock token status check returning null token
-      mockAxios.post.mockResolvedValue({
-        data: {
-          result: {
-            token: null,
-          },
-        },
-      });
 
       mockJose.jwtDecrypt.mockResolvedValue(mockDecryptedToken as any);
       mockJose.jwtVerify.mockResolvedValue(mockVerifiedToken as any);
 
       await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        'Invalid or expired token',
+        new UnauthorizedException('Missing virtual_id in token payload'),
       );
     });
 
-    it('should handle missing JOSE_SECRET environment variable', async () => {
-      delete process.env.JOSE_SECRET;
-
-      await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should handle missing JWT_SIGNIN_PRIVATE_KEY environment variable', async () => {
-      delete process.env.JWT_SIGNIN_PRIVATE_KEY;
-
+    it('should throw UnauthorizedException when user is logged out (tokenStatus.isActive is false)', async () => {
       const mockDecryptedToken = {
         payload: {
           jwtSignedToken: 'signed-jwt-token',
         },
       };
 
+      const mockVerifiedToken = {
+        payload: {
+          virtualId: 'user-123',
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        },
+      };
+
       mockJose.jwtDecrypt.mockResolvedValue(mockDecryptedToken as any);
+      mockJose.jwtVerify.mockResolvedValue(mockVerifiedToken as any);
+      mockAuthHelper.checkTokenStatus.mockResolvedValue({ isActive: false });
 
       await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        UnauthorizedException,
+        new UnauthorizedException('User is logged out'),
       );
     });
   });
 
-  describe('checkTokenStatus', () => {
-    it('should return token when API call is successful', async () => {
-      const userId = 'user-123';
-      const expectedToken = 'valid-token';
+  describe('checkTokenStatus delegation', () => {
+    it('should delegate checkTokenStatus call to authHelper.checkTokenStatus', async () => {
+      mockAuthHelper.checkTokenStatus.mockResolvedValue({ isActive: true });
 
-      mockAxios.post.mockResolvedValue({
-        data: {
-          result: {
-            token: expectedToken,
-          },
-        },
-      });
+      const result = await guard.checkTokenStatus('user-123', 'mock-token');
 
-      const result = await guard['checkTokenStatus'](userId);
-
-      expect(result).toEqual({ token: expectedToken });
-      expect(mockAxios.post).toHaveBeenCalledWith(
-        process.env.ALL_ORC_SERVICE_URL,
-        { user_id: userId },
+      expect(result).toEqual({ isActive: true });
+      expect(mockAuthHelper.checkTokenStatus).toHaveBeenCalledWith(
+        'user-123',
+        'mock-token',
       );
-    });
-
-    it('should return null token when API call fails', async () => {
-      const userId = 'user-123';
-
-      mockAxios.post.mockRejectedValue(new Error('API Error'));
-
-      const result = await guard['checkTokenStatus'](userId);
-
-      expect(result).toEqual({ token: null });
-    });
-
-    it('should return null token when API response has no result', async () => {
-      const userId = 'user-123';
-
-      mockAxios.post.mockResolvedValue({
-        data: {},
-      });
-
-      const result = await guard['checkTokenStatus'](userId);
-
-      expect(result).toEqual({ token: null });
-    });
-
-    it('should return null token when API response result has no token', async () => {
-      const userId = 'user-123';
-
-      mockAxios.post.mockResolvedValue({
-        data: {
-          result: {},
-        },
-      });
-
-      const result = await guard['checkTokenStatus'](userId);
-
-      expect(result).toEqual({ token: null });
-    });
-
-    it('should handle axios error with response data', async () => {
-      const userId = 'user-123';
-      const axiosError = {
-        response: {
-          data: { error: 'API Error' },
-        },
-        message: 'Network Error',
-      };
-
-      mockAxios.post.mockRejectedValue(axiosError);
-
-      const result = await guard['checkTokenStatus'](userId);
-
-      expect(result).toEqual({ token: null });
-    });
-
-    it('should handle axios error without response data', async () => {
-      const userId = 'user-123';
-      const axiosError = {
-        message: 'Network Error',
-      };
-
-      mockAxios.post.mockRejectedValue(axiosError);
-
-      const result = await guard['checkTokenStatus'](userId);
-
-      expect(result).toEqual({ token: null });
-    });
-  });
-
-  describe('constructor', () => {
-    it('should create guard instance with JwtService dependency', () => {
-      expect(guard).toBeDefined();
-      expect(guard['jwtService']).toBeDefined();
     });
   });
 
@@ -369,65 +259,25 @@ describe('JwtAuthGuard', () => {
       } as unknown as ExecutionContext;
 
       await expect(guard.canActivate(contextWithEmptyAuth)).rejects.toThrow(
-        UnauthorizedException,
+        new UnauthorizedException('Authorization header missing'),
       );
     });
 
-    it('should handle authorization header with only Bearer prefix', async () => {
-      const requestWithOnlyBearer = {
+    it('should handle authorization header with single token string without Bearer prefix', async () => {
+      const requestWithSingleToken = {
         headers: {
-          authorization: 'Bearer ',
+          authorization: 'some-token',
         },
       };
-      const contextWithOnlyBearer = {
+      const contextWithSingleToken = {
         switchToHttp: jest.fn().mockReturnValue({
-          getRequest: jest.fn().mockReturnValue(requestWithOnlyBearer),
+          getRequest: jest.fn().mockReturnValue(requestWithSingleToken),
         }),
       } as unknown as ExecutionContext;
 
-      await expect(guard.canActivate(contextWithOnlyBearer)).rejects.toThrow(
-        UnauthorizedException,
+      await expect(guard.canActivate(contextWithSingleToken)).rejects.toThrow(
+        new UnauthorizedException('Invalid authorization header format'),
       );
-    });
-
-    it('should handle malformed authorization header', async () => {
-      const requestWithMalformedAuth = {
-        headers: {
-          authorization: 'Bearer token extra',
-        },
-      };
-      const contextWithMalformedAuth = {
-        switchToHttp: jest.fn().mockReturnValue({
-          getRequest: jest.fn().mockReturnValue(requestWithMalformedAuth),
-        }),
-      } as unknown as ExecutionContext;
-
-      // This should still work as it takes the second part after split
-      const mockDecryptedToken = {
-        payload: {
-          jwtSignedToken: 'signed-jwt-token',
-        },
-      };
-
-      const mockVerifiedToken = {
-        payload: {
-          virtual_id: 'user-123',
-        },
-      };
-
-      mockAxios.post.mockResolvedValue({
-        data: {
-          result: {
-            token: 'token',
-          },
-        },
-      });
-
-      mockJose.jwtDecrypt.mockResolvedValue(mockDecryptedToken as any);
-      mockJose.jwtVerify.mockResolvedValue(mockVerifiedToken as any);
-
-      const result = await guard.canActivate(contextWithMalformedAuth);
-      expect(result).toBe(true);
     });
   });
-}); 
+});

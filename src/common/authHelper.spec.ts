@@ -152,31 +152,7 @@ describe('authHelper', () => {
   });
 
   describe('checkTokenStatus', () => {
-    it('should return isActive true when orchestration service returns result.isActive = true', async () => {
-      process.env.ALL_ORC_SERVICE_URL =
-        'http://points-lesson-tracking:3009/api/virtualId/tokenStatus';
-      delete process.env.AXL_LOGIN_SERVICE_URL;
-
-      const { spy } = mockHttpRequest(http, { result: { isActive: true } });
-      const result = await checkTokenStatus('12345', 'mock-token');
-      expect(result).toEqual({ isActive: true });
-      spy.mockRestore();
-    });
-
-    it('should return isActive true when orchestration service returns data.result.isActive = true', async () => {
-      process.env.ALL_ORC_SERVICE_URL =
-        'http://points-lesson-tracking:3009/api/virtualId/tokenStatus';
-
-      const { spy } = mockHttpRequest(http, {
-        data: { result: { isActive: true } },
-      });
-      const result = await checkTokenStatus('12345', 'mock-token');
-      expect(result).toEqual({ isActive: true });
-      spy.mockRestore();
-    });
-
     it('should return isActive true when login service returns matching token', async () => {
-      delete process.env.ALL_ORC_SERVICE_URL;
       process.env.AXL_LOGIN_SERVICE_URL = 'http://axl-login-service:8000';
 
       const { spy } = mockHttpRequest(http, {
@@ -194,7 +170,6 @@ describe('authHelper', () => {
     });
 
     it('should return isActive false when login service returns mismatched token', async () => {
-      delete process.env.ALL_ORC_SERVICE_URL;
       process.env.AXL_LOGIN_SERVICE_URL = 'http://axl-login-service:8000';
 
       const { spy } = mockHttpRequest(http, {
@@ -207,49 +182,7 @@ describe('authHelper', () => {
       spy.mockRestore();
     });
 
-    it('should fallback gracefully to login service if orchestration service throws error', async () => {
-      process.env.ALL_ORC_SERVICE_URL =
-        'http://points-lesson-tracking:3009/api/virtualId/tokenStatus';
-      process.env.AXL_LOGIN_SERVICE_URL = 'http://axl-login-service:8000';
-
-      let callCount = 0;
-      const requestSpy = jest
-        .spyOn(http, 'request')
-        .mockImplementation((_url: any, _options: any, callback?: any) => {
-          callCount++;
-          const mockReq = Object.assign(new EventEmitter(), {
-            write: jest.fn(),
-            end: jest.fn(),
-          });
-          const mockRes = new EventEmitter();
-
-          if (callCount === 1) {
-            setTimeout(() => {
-              mockReq.emit('error', new Error('Orc network error'));
-            }, 5);
-          } else {
-            if (callback) callback(mockRes);
-            setTimeout(() => {
-              mockRes.emit(
-                'data',
-                JSON.stringify({
-                  token: 'my-token',
-                }),
-              );
-              mockRes.emit('end');
-            }, 5);
-          }
-          return mockReq as any;
-        });
-
-      const result = await checkTokenStatus('12345', 'my-token');
-      expect(result).toEqual({ isActive: true });
-      requestSpy.mockRestore();
-    });
-
-    it('should return isActive false if both services are unavailable or fail', async () => {
-      process.env.ALL_ORC_SERVICE_URL =
-        'http://points-lesson-tracking:3009/api/virtualId/tokenStatus';
+    it('should return isActive false if login service fails with network error', async () => {
       process.env.AXL_LOGIN_SERVICE_URL = 'http://axl-login-service:8000';
 
       const { spy } = mockHttpRequest(
@@ -263,7 +196,6 @@ describe('authHelper', () => {
     });
 
     it('should return isActive false if no URLs are configured', async () => {
-      delete process.env.ALL_ORC_SERVICE_URL;
       delete process.env.AXL_LOGIN_SERVICE_URL;
 
       const result = await checkTokenStatus('12345', 'my-token');

@@ -71,30 +71,7 @@ export const checkTokenStatus = async (
   userId: number | string,
   token: string,
 ): Promise<{ isActive: boolean }> => {
-  const orcServiceUrl = process.env.ALL_ORC_SERVICE_URL;
   const loginServiceUrl = process.env.AXL_LOGIN_SERVICE_URL;
-
-  if (orcServiceUrl) {
-    try {
-      const response: any = await postJson(orcServiceUrl, {
-        user_id: userId,
-        token: token,
-      });
-      const isActive =
-        response?.result?.isActive ??
-        response?.data?.result?.isActive ??
-        response?.isActive ??
-        null;
-      if (isActive !== null) {
-        return { isActive: Boolean(isActive) };
-      }
-    } catch (err: any) {
-      console.error(
-        'Error fetching token status from orchestration service:',
-        err?.message || err,
-      );
-    }
-  }
 
   if (loginServiceUrl) {
     try {

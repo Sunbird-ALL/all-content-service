@@ -2,12 +2,14 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import * as jose from 'jose';
 import {
+  AuthServiceUnavailableError,
   checkTokenStatus as checkTokenStatusHelper,
   getEncryptionKey,
   getSigningKey,
@@ -60,9 +62,9 @@ export class JwtAuthGuard implements CanActivate {
         throw new UnauthorizedException('Missing virtual_id in token payload');
       }
 
-      // Step 4: Verify active token status
-      const tokenStatus = await this.checkTokenStatus(virtualId, token);
-      if (!tokenStatus.isActive) {
+      // Step 4: Verify active token status — strictly no fallback
+      const isActive = await this.checkTokenStatus(virtualId, token);
+      if (!isActive) {
         throw new UnauthorizedException('User is logged out');
       }
 
@@ -74,6 +76,11 @@ export class JwtAuthGuard implements CanActivate {
       if (err instanceof UnauthorizedException) {
         throw err;
       }
+      if (err instanceof AuthServiceUnavailableError) {
+        throw new ServiceUnavailableException(
+          'Not able to connect with axl-login-service',
+        );
+      }
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
@@ -82,7 +89,7 @@ export class JwtAuthGuard implements CanActivate {
   async checkTokenStatus(
     userId: string | number,
     token: string,
-  ): Promise<{ isActive: boolean }> {
+  ): Promise<boolean> {
     return checkTokenStatusHelper(userId, token);
   }
 }

@@ -1,0 +1,86 @@
+name: Build and Deploy all-content-service
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Docker image tag (e.g. v1.0.0)"
+        required: true
+        type: string
+      branch:
+        description: "Branch to build from"
+        required: true
+        default: "main"
+        type: string
+
+env:
+  IMAGE_NAME: all-content-service
+
+jobs:
+  build-and-deploy:
+    runs-on: 
+      group: all-dev-lais-grp
+      labels: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${IMAGE_NAME}:${{ inputs.tag_name }} -f Dockerfile .
+
+      - name: Verify image is available on server
+        run: |
+          docker images | grep "${IMAGE_NAME}" | grep "${{ inputs.tag_name }}" \
+            || { echo "Image ${IMAGE_NAME}:${{ inputs.tag_name }} not found"; exit 1; }
+
+      - name: Check existing containers
+        run: |
+          docker ps -a
+
+      - name: Stop old service if present (docker compose down)
+        env:
+          IMAGE_TAG: ${{ inputs.tag_name }}
+        run: |
+          EXISTING=$(docker compose ps -a -q)
+          if [ -n "$EXISTING" ]; then
+            echo "Existing containers found. Running docker compose down..."
+            docker compose down
+          else
+            echo "No existing containers. Skipping down."
+          fi
+
+      - name: Start service (docker compose up -d)
+        env:
+          IMAGE_TAG: ${{ inputs.tag_name }}
+        run: |
+          docker compose up -d
+
+      - name: Verify container is running on latest image
+        env:
+          IMAGE_TAG: ${{ inputs.tag_name }}
+        run: |
+          sleep 10
+          docker ps -a
+
+          EXPECTED_ID=$(docker image inspect --format '{{.Id}}' ${IMAGE_NAME}:${IMAGE_TAG})
+          CONTAINERS=$(docker compose ps -q)
+
+          if [ -z "$CONTAINERS" ]; then
+            echo "No containers found after compose up"; exit 1
+          fi
+
+          for C in $CONTAINERS; do
+            STATE=$(docker inspect --format '{{.State.Status}}' "$C")
+            IMG_ID=$(docker inspect --format '{{.Image}}' "$C")
+            NAME=$(docker inspect --format '{{.Name}}' "$C")
+            echo "Container $NAME -> state=$STATE image=$IMG_ID"
+
+            [ "$STATE" = "running" ] || { echo "$NAME is not running"; exit 1; }
+            [ "$IMG_ID" = "$EXPECTED_ID" ] || { echo "$NAME is NOT using the latest built image"; exit 1; }
+          done
+
+          echo "All containers are running on ${IMAGE_NAME}:${IMAGE_TAG}"

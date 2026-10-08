@@ -1,0 +1,117 @@
+name: Build and Deploy all-content-service
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Docker image tag (e.g. v1.0.0)"
+        required: true
+        type: string
+      branch:
+        description: "Branch to build from"
+        required: true
+        default: "main"
+        type: string
+      environment:
+        description: "GitHub environment (secrets/variables are read from here)"
+        required: true
+        type: environment
+
+# Shared runner group: never run two deploys of this service at the same time
+concurrency:
+  group: deploy-all-content-service-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: all-content-service
+  COMPOSE_PROJECT: all-content-service
+
+jobs:
+  build-and-deploy:
+    runs-on: 
+      group: all-dev-lais-grp
+      labels: self-hosted
+    environment: ${{ inputs.environment }}
+
+    # Values below are substituted into docker-compose.yaml as ${VAR}.
+    # Nothing is written to disk (no .env file), so nothing is left behind
+    # on the shared runner.
+    env:
+      IMAGE_TAG: ${{ inputs.tag_name }}
+      APP_VERSION: ${{ inputs.tag_name }}
+
+      # ---- Secrets (GitHub Environment secrets) ----
+      MONGODB_URL: ${{ secrets.MONGODB_URL }}
+      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+      JOSE_ENCRYPTION_PRIVATE_KEY: ${{ secrets.JOSE_ENCRYPTION_PRIVATE_KEY }}
+      JOSE_SIGNIN_PRIVATE_KEY: ${{ secrets.JOSE_SIGNIN_PRIVATE_KEY }}
+
+      # ---- Non-sensitive config (GitHub Environment variables) ----
+      ALL_LC_API_URL: ${{ vars.ALL_LC_API_URL }}
+      ALL_TEXT_EVAL_URL: ${{ vars.ALL_TEXT_EVAL_URL }}
+      SERVER_URL: ${{ vars.SERVER_URL }}
+      POOL_SIZE: ${{ vars.POOL_SIZE }}
+      REDIS_HOST: ${{ vars.REDIS_HOST }}
+      REDIS_PORT: ${{ vars.REDIS_PORT }}
+      ALL_CONTENT_API: ${{ vars.ALL_CONTENT_API }}
+      ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+      ALL_ORC_SERVICE_URL: ${{ vars.ALL_ORC_SERVICE_URL }}
+      AXL_LOGIN_SERVICE_URL: ${{ vars.AXL_LOGIN_SERVICE_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          clean: true
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -f Dockerfile .
+
+      - name: Verify image is available on server
+        run: |
+          docker images | grep "${IMAGE_NAME}" | grep "${IMAGE_TAG}" \
+            || { echo "Image ${IMAGE_NAME}:${IMAGE_TAG} not found"; exit 1; }
+
+      - name: Check existing containers
+        run: |
+          docker ps -a
+
+      - name: Stop old service if present (docker compose down)
+        run: |
+          EXISTING=$(docker compose -p ${COMPOSE_PROJECT} ps -a -q)
+          if [ -n "$EXISTING" ]; then
+            echo "Existing containers found. Running docker compose down..."
+            docker compose -p ${COMPOSE_PROJECT} down
+          else
+            echo "No existing containers. Skipping down."
+          fi
+
+      - name: Start service (docker compose up -d)
+        run: |
+          docker compose -p ${COMPOSE_PROJECT} up -d
+
+      - name: Verify container is running on latest image
+        run: |
+          sleep 10
+          docker ps -a
+
+          EXPECTED_ID=$(docker image inspect --format '{{.Id}}' ${IMAGE_NAME}:${IMAGE_TAG})
+          CONTAINERS=$(docker compose -p ${COMPOSE_PROJECT} ps -q)
+
+          if [ -z "$CONTAINERS" ]; then
+            echo "No containers found after compose up"; exit 1
+          fi
+
+          for C in $CONTAINERS; do
+            STATE=$(docker inspect --format '{{.State.Status}}' "$C")
+            IMG_ID=$(docker inspect --format '{{.Image}}' "$C")
+            NAME=$(docker inspect --format '{{.Name}}' "$C")
+            echo "Container $NAME -> state=$STATE image=$IMG_ID"
+
+            [ "$STATE" = "running" ] || { echo "$NAME is not running"; docker logs --tail 50 "$C"; exit 1; }
+            [ "$IMG_ID" = "$EXPECTED_ID" ] || { echo "$NAME is NOT using the latest built image"; exit 1; }
+          done
+
+          echo "All containers are running on ${IMAGE_NAME}:${IMAGE_TAG}"

@@ -1,16 +1,31 @@
-version: '3'
 services:
   content-service-app:
-    build:
-      context: .
+    image: all-content-service:${IMAGE_TAG:-latest}
     ports:
-      - '3008:3008'
-    container_name: content-service
+      - "3008:3008"
+    container_name: all-content-service
     restart: always
     networks:
-      - ai-network
+      - all-learner-ai-services_ai-network
     environment:
-      - .env
+      # secrets
+      - MONGODB_URL=${MONGODB_URL:?MONGODB_URL is required}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - JOSE_ENCRYPTION_PRIVATE_KEY=${JOSE_ENCRYPTION_PRIVATE_KEY:?JOSE_ENCRYPTION_PRIVATE_KEY is required}
+      - JOSE_SIGNIN_PRIVATE_KEY=${JOSE_SIGNIN_PRIVATE_KEY:?JOSE_SIGNIN_PRIVATE_KEY is required}
+      # config (environment variables)
+      - ALL_LC_API_URL=${ALL_LC_API_URL}
+      - ALL_TEXT_EVAL_URL=${ALL_TEXT_EVAL_URL}
+      - SERVER_URL=${SERVER_URL}
+      - POOL_SIZE=${POOL_SIZE}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - ALL_CONTENT_API=${ALL_CONTENT_API}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - ALL_ORC_SERVICE_URL=${ALL_ORC_SERVICE_URL}
+      - AXL_LOGIN_SERVICE_URL=${AXL_LOGIN_SERVICE_URL}
+      - APP_VERSION=${APP_VERSION}
+
 networks:
-  ai-network:
-    driver: bridge
+  all-learner-ai-services_ai-network:
+    external: true

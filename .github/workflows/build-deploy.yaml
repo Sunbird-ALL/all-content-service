@@ -18,9 +18,9 @@ on:
         type: environment
 
 # Shared runner group: never run two deploys of this service at the same time
-concurrency:
-  group: deploy-all-content-service-${{ inputs.environment }}
-  cancel-in-progress: false
+#concurrency:
+  #group: deploy-all-content-service-${{ inputs.environment }}
+  #cancel-in-progress: false
 
 env:
   IMAGE_NAME: all-content-service

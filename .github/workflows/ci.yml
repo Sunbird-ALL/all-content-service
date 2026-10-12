@@ -53,7 +53,7 @@ jobs:
   push:
     name: Push
     needs: build
-    if: ${{ contains(fromJSON('["siddhi", "bhargav"]'), github.actor) }}
+    if: ${{ contains(fromJSON('["SiddhiOptit", "bhargav"]'), github.actor) }}
     runs-on:
       group: all-jumphost-runner
       labels: self-hosted

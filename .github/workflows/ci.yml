@@ -7,11 +7,6 @@ on:
         description: "Docker image tag to push (e.g. v1.0.0)"
         required: true
         type: string
-      branch:
-        description: "Branch to build from"
-        required: true
-        default: "main"
-        type: string
 
 env:
   IMAGE_NAME: all-content-service
@@ -30,7 +25,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ github.ref_name }}
 
       - name: Normalize owner to lowercase
         id: owner

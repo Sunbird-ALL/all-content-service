@@ -37,6 +37,43 @@ export class CollectionService {
     return await this.collectionModel.findByIdAndRemove(id);
   }
 
+  // One random collection for each of sets 1..setCount, as getAssessment would
+  // return for tags + 'set<N>', in set order and skipping sets with no match.
+  // One aggregate instead of setCount queries run one after another.
+  async getAssessmentSets(tags, language, setCount: number) {
+    const facets = {};
+    for (let setno = 1; setno <= setCount; setno++) {
+      facets['set' + setno] = [
+        { $match: { tags: 'set' + setno } },
+        { $sample: { size: 1 } },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            category: 1,
+            collectionId: 1,
+            tags: 1,
+          },
+        },
+      ];
+    }
+    const [bySet] = await this.collectionModel.aggregate([
+      {
+        $match: {
+          tags: { $all: tags },
+          language: language,
+        },
+      },
+      { $facet: facets },
+    ]);
+    const data = [];
+    for (let setno = 1; setno <= setCount; setno++) {
+      const picked = bySet?.['set' + setno]?.[0];
+      if (picked != null) data.push(picked);
+    }
+    return data;
+  }
+
   async getAssessment(tags, language) {
     const data = await this.collectionModel.aggregate([
       {

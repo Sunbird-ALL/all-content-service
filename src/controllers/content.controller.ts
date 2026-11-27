@@ -1374,19 +1374,12 @@ export class contentController {
       let contentCollection;
 
       if (queryData.tags.includes('ASER')) {
-        let collectionArr = [];
-        for (let setno = 1; setno <= 6; setno++) {
-          let tags = [];
-          tags.push(...queryData.tags);
-          tags.push('set' + setno);
-          let collection = await this.collectionService.getAssessment(
-            tags,
-            queryData.language,
-          );
-          if (collection.data[0] != null) {
-           collectionArr.push(collection.data[0]);
-          }
-        }
+        // One random collection per set (set1..set6), from one query.
+        const collectionArr = await this.collectionService.getAssessmentSets(
+          queryData.tags,
+          queryData.language,
+          6,
+        );
         contentCollection = {
           data: collectionArr,
           status: 200,

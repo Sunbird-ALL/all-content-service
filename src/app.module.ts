@@ -27,10 +27,10 @@ import { AuthModule } from './auth/auth.module';
         uri: process.env.MONGODB_URL,
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        connectionFactory: (connection) => {
-          connection.set('poolSize', process.env.POOL_SIZE);
-          return connection;
-        },
+        // Connections per process. Total on MongoDB = POOL_SIZE x workers x pods.
+        // Unset keeps the driver defaults (max 100, min 0).
+        maxPoolSize: parseInt(process.env.POOL_SIZE, 10) || 100,
+        minPoolSize: parseInt(process.env.MIN_POOL_SIZE, 10) || 0,
       }),
     }),
 
